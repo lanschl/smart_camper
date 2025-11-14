@@ -1,0 +1,5 @@
+{
+  "name": "beige camper v4",
+  "description": "A user interface to control and monitor various systems within a campervan, including lights, climate, water, and security. Designed with a clean, modern aesthetic for touch-based control.",
+  "requestFramePermissions": []
+}
