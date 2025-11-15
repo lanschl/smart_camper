@@ -8,3 +8,7 @@ node_modules/
 # autotherm moduls: 
 hardware/autotherm_heater_control/venv/
 hardware/autotherm_heater_control/.idea
+
+# logfiles
+debug.log   
+heater.log

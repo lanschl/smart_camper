@@ -14,13 +14,16 @@ SERVER_HOST = '0.0.0.0' # Listen on all network interfaces
 SERVER_PORT = 5000
 
 
-# GPIO pins (BCM numbering) for dimmable lights via PWM
-# IMPORTANT: These should be hardware PWM capable pins for best results.
-# On Pi 4/5: GPIO 12, 13, 14, 15 are good choices.
-LIGHT_PWM_PINS = {
-    'deko': 12,
-    'ambiente': 13,
-    'ceiling': 14,
+# Configuration for the ESP32-based PWM Light Controller
+ESP32_LIGHT_CONFIG = {
+    # Find this with 'ls /dev/tty*' - usually ttyACM0 or ttyUSB0
+    'port': '/dev/ttyUSB0', 
+    'pins': {
+        # These IDs MUST match the IDs in the ESP32's main.py script
+        'deko': 12,
+        'ambiente': 14,
+        'ceiling': 13,
+    }
 }
 
 

@@ -88,6 +88,22 @@ All hardware-specific settings (GPIO pins, sensor IDs, etc.) are stored in `conf
 
 ---
 
+### Light Dimming (ESP32 PWM Offloader)
+
+To achieve perfectly flicker-free LED dimming without burdening the Raspberry Pi's CPU, this system offloads all PWM (Pulse Width Modulation) generation to a dedicated ESP32 microcontroller running MicroPython.
+
+**ESP32 Setup:**
+1.  Install MicroPython on your ESP32.
+2.  Connect the ESP32 to the Raspberry Pi via a USB cable.
+3.  Flash the `main.py` script (provided in the project) to the ESP32. This script listens for serial commands over USB.
+4.  Wire the ESP32's GPIO pins (as defined in `main.py`) to the signal inputs of your MOSFET boards.
+
+**Raspberry Pi Configuration:**
+1.  Update the `ESP32_LIGHT_CONFIG` dictionary in `config.py` to match the ESP32's USB serial port (e.g., `/dev/ttyUSB0`) and the pin mapping you configured.
+
+The Raspberry Pi acts as the master, sending high-level commands like `"deko,512\n"` to the ESP32, which then handles the real-time, high-frequency PWM signal generation.
+
+
 ## 3. Running the System
 
 ### For Development (Manual Restart)

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from collections import deque
 import logging
 
-from config import (VALVE_PINS, LIGHT_PWM_PINS, PUMP_PINS, ACTUATOR_PINS, SERVER_HOST, 
+from config import (VALVE_PINS, ESP32_LIGHT_CONFIG, PUMP_PINS, ACTUATOR_PINS, SERVER_HOST, 
                     SERVER_PORT, BOILER_PINS, FLOOR_HEATING_PINS, SENSOR_IDS, 
                     WATER_SENSOR_CONFIG, BMS_MAC_ADDRESS, BMS_PROTOCOL, HEATER_CONFIG )
 from hardware.valves import ValveController
@@ -42,7 +42,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Initialize our hardware controller with the pins from the config file
 valve_controller = ValveController(VALVE_PINS)
-light_controller = LightController(LIGHT_PWM_PINS)
+light_controller = LightController(ESP32_LIGHT_CONFIG['port'], ESP32_LIGHT_CONFIG['pins'])
 pump_controller = PumpController(PUMP_PINS)
 actuator_controller = ActuatorController(ACTUATOR_PINS)
 boiler_controller = SwitchController(BOILER_PINS)
@@ -128,13 +128,13 @@ def handle_light_change(data):
     """
     device_id = data.get('id')
     new_level = data.get('level')
+    logging.info(f"Received 'light_change' event for '{device_id}' -> {new_level}%")
 
-    print(f"Received 'light_change' event for '{device_id}' -> {new_level}%")
-
+    # This now calls the new controller
     if device_id in light_controller.pin_config:
         light_controller.set_light_level(device_id, new_level)
     else:
-        print(f"Warning: No handler for light_id '{device_id}'")
+        logging.warning(f"Warning: No handler for light_id '{device_id}'")
 
 
 @socketio.on('floor_heating_change')
