@@ -235,13 +235,14 @@ const BatteryStatus: React.FC<{ soc: number; voltage: number; amperage: number; 
 
     const batteryColorClass = getBatteryColor(soc);
     const amperageColor = amperage >= 0 ? 'text-green-500' : 'text-red-500';
-    // Power is also charging (green) or discharging (red)
     const powerColor = power >= 0 ? 'text-green-500' : 'text-red-500';
 
     return (
-        <div className="flex flex-col items-center w-full">
-            <div className="relative w-48 h-48">
-                {/* ... (the SVG for the SOC circle is the same) ... */}
+        // Main container is now a horizontal row with centered items
+        <div className="flex flex-row items-center justify-around w-full gap-4 px-2">
+            
+            {/* Left Side: The SOC Circle (slightly smaller) */}
+            <div className="relative w-36 h-36 flex-shrink-0">
                 <svg
                     height="100%"
                     width="100%"
@@ -271,27 +272,30 @@ const BatteryStatus: React.FC<{ soc: number; voltage: number; amperage: number; 
                     />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-5xl font-bold text-stone-100`}>
+                    {/* Font size is slightly smaller to fit */}
+                    <span className={`text-4xl font-bold text-stone-100`}>
                         {Math.round(soc)}
-                        <span className="text-3xl">%</span>
+                        <span className="text-2xl">%</span>
                     </span>
                 </div>
             </div>
-            {/* --- THIS IS THE MODIFIED SECTION --- */}
-            <div className="grid grid-cols-3 gap-2 w-full mt-2 text-center">
+
+            {/* Right Side: The Vertical Stack of Text Readouts */}
+            <div className="flex flex-col gap-2 text-left">
                 <div>
                     <p className="text-sm text-stone-100">Voltage</p>
-                    <p className="text-lg font-semibold text-stone-200">{voltage.toFixed(1)}V</p>
+                    <p className="text-xl font-semibold text-stone-200">{voltage.toFixed(1)}V</p>
                 </div>
                 <div>
                     <p className="text-sm text-stone-100">Current</p>
-                    <p className={`text-lg font-semibold ${amperageColor}`}>{amperage.toFixed(1)}A</p>
+                    <p className={`text-xl font-semibold ${amperageColor}`}>{amperage.toFixed(1)}A</p>
                 </div>
                 <div>
                     <p className="text-sm text-stone-100">Power</p>
-                    <p className={`text-lg font-semibold ${powerColor}`}>{Math.round(power)}W</p>
+                    <p className={`text-xl font-semibold ${powerColor}`}>{Math.round(power)}W</p>
                 </div>
             </div>
+
         </div>
     );
 };
@@ -358,34 +362,34 @@ const DashboardView: React.FC<DashboardViewProps> = ({ sensors }) => {
         
         <div className="col-span-1">
             <SensorCard 
-                icon={<TemperatureIcon className="w-6 h-6"/>} 
+                icon={<TemperatureIcon className="w-6 h-10"/>} 
                 title="Cabin Temp" 
-                value={<span className={tempValueClass}>{`${sensors.insideTemp.toFixed(1)}°C`}</span>}
+                value={<span className={`${tempValueClass} text-5xl`}>{`${sensors.insideTemp.toFixed(1)}°C`}</span>}
                 style={{ backgroundColor: getInterpolatedTempColor(sensors.insideTemp) }}
             />
         </div>
 
         <div className="col-span-1">
             <SensorCard 
-                icon={<TemperatureIcon className="w-6 h-6"/>} 
+                icon={<TemperatureIcon className="w-6 h-10"/>} 
                 title="Outside Temp" 
-                value={<span className={tempValueClass}>{`${sensors.outsideTemp.toFixed(1)}°C`}</span>}
+                value={<span className={`${tempValueClass} text-5xl`}>{`${sensors.insideTemp.toFixed(1)}°C`}</span>}
                 style={{ backgroundColor: getInterpolatedTempColor(sensors.outsideTemp) }}
             />
         </div>
 
         <div className="col-span-2">
             <SensorCard icon={<WaterDropIcon className="w-6 h-6"/>} title="Water Levels" value="">
-                <div className="flex space-x-2 justify-center pt-2 w-full">
+                <div className="flex space-x-2 justify-center pt-0 w-full">
                     <div className="flex flex-col items-center w-1/2">
-                        <div className="relative w-full h-24 bg-stone-500/75 rounded-lg overflow-hidden">
+                        <div className="relative w-full h-20 bg-stone-500/75 rounded-lg overflow-hidden">
                             <PhysicsWaterTank level={sensors.freshWater} color="#0EA5E9" />
                             <span className="absolute bottom-1 left-0 right-0 text-center text-xl font-bold text-white pointer-events-none">{sensors.freshWater}%</span>
                         </div>
                         <span className="mt-1 text-sm text-stone-100">Fresh</span>
                     </div>
                     <div className="flex flex-col items-center w-1/2">
-                         <div className="relative w-full h-24 bg-stone-500/75 rounded-lg overflow-hidden">
+                         <div className="relative w-full h-20 bg-stone-500/75 rounded-lg overflow-hidden">
                             <PhysicsWaterTank level={sensors.grayWater} color="#D3D3D3" />
                             <span className="absolute bottom-1 left-0 right-0 text-center text-xl font-bold text-white pointer-events-none">{sensors.grayWater}%</span>
                         </div>

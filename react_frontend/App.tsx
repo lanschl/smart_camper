@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { VanState, View, DieselHeaterState } from './types'; // Import DieselHeaterState
-import BottomNav from './components/BottomNav';
+// import BottomNav from './components/BottomNav';
+//import SideNav from './components/SideNav';
+import TopNav from './components/TopNav';
 import DashboardView from './views/DashboardView';
 import ControlsView from './views/ControlsView';
 import ClimateAndWaterView from './views/ClimateAndWaterView';
@@ -162,11 +164,16 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="font-sans text-stone-800 min-h-screen flex flex-col">
-      <main className="flex-grow p-4 md:p-6 pb-24">
+    <div className="font-sans text-stone-800 min-h-screen"> {/* Removed flex layout */}
+      
+      {/* The new TopNav is now a self-managing overlay component */}
+      <TopNav activeView={activeView} setActiveView={setActiveView} />
+
+      {/* The main content area now has padding at the top to make space for the nav bar */}
+      <main className="p-4 md:p-6 pt-28"> {/* Added pt-28 (padding-top) */}
         {renderView()}
       </main>
-      <BottomNav activeView={activeView} setActiveView={setActiveView} />
+
     </div>
   );
 };
