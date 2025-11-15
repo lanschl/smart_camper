@@ -158,6 +158,7 @@ def sensor_reading_thread():
     Reads sensors, logs boiler temp to a file, maintains history, and pushes updates.
     """
     print("Starting sensor reading background thread.")
+    global heater_start_timer, heater_start_command
     while True:
         sensor_data = sensor_reader.read_all_sensors()
 
@@ -168,9 +169,14 @@ def sensor_reading_thread():
         if bms_data:
             sensor_data.update(bms_data)
 
+        # 1. Feed the cabin temp to the heater controller
+        inside_temp = sensor_data.get('insideTemp')
+        if inside_temp is not None:
+            heater_controller.update_cabin_temperature(inside_temp)
+            
+        # 2. Get the latest full state from the heater
         heater_state = heater_controller.get_state()
         if heater_state:
-            # Nest the heater data under its own key
             sensor_data['dieselHeater'] = heater_state
         
         if sensor_data:
@@ -207,15 +213,41 @@ def handle_diesel_heater_command(data):
     e.g., {'command': 'shutdown'}
     e.g., {'command': 'change_setting', 'mode': 'temperature', 'value': 22}
     """
+    global heater_start_timer, heater_start_command
     command = data.get('command')
     logging.info(f"Received diesel_heater_command: {data}")
     
-    if command == 'shutdown':
+    if command == 'start_in':
+        start_delay_minutes = data.get('value')
+        if start_delay_minutes > 0:
+            heater_start_timer = time.time() + (start_delay_minutes * 60)
+            # Store the command that should be run when the timer expires
+            heater_start_command = data.get('action')
+            logging.info(f"Heater start timer set for {start_delay_minutes} minutes from now.")
+        else: # If delay is 0, start now
+             command_to_run = data.get('action')
+             heater_controller.turn_on_heating(
+                 command_to_run.get('mode'),
+                 command_to_run.get('value'),
+                 command_to_run.get('run_timer_minutes')
+             )
+    elif command == 'cancel_start_timer':
+        heater_start_timer = None
+        heater_start_command = None
+        logging.info("Heater start timer cancelled.")
+    elif command == 'shutdown':
         heater_controller.shutdown()
     elif command == 'turn_on':
-        heater_controller.turn_on_heating(data.get('mode'), data.get('value'))
+        heater_controller.turn_on_heating(
+            data.get('mode'), 
+            data.get('value'),
+            data.get('run_timer_minutes')
+        )
     elif command == 'turn_on_ventilation':
-        heater_controller.turn_on_ventilation(data.get('value'))
+        heater_controller.turn_on_ventilation(
+            data.get('value'),
+            data.get('run_timer_minutes')
+        )
     elif command == 'change_setting':
         heater_controller.change_settings(data.get('mode'), data.get('value'))
 

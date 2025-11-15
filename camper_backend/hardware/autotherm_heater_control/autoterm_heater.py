@@ -120,54 +120,54 @@ class AutotermPassthrough(AutotermUtils):
         self.__ser2.close()
 
     def __connect(self):
+        """
+        MODIFIED FOR DIRECT CONTROL: Connects to a single specified serial port.
+        """
+        # We ignore the dual-port logic and focus only on port1.
+        # The serial number is used to find the device path (e.g., /dev/ttyUSB0).
         if self.serial_num:
-            # Search for USB devices based on serial number
-            ports = [port.device for port in list_ports.comports() if port.serial_number == self.serial_num]
-            if len(ports) == 0:
-                self.logger.error('No serial adapters were found!')
+            # Use a more robust method to find the device path from the full ID string
+            try:
+                import glob
+                # The full ID is in config, e.g., 'usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0'
+                # We need to find the device file it links to.
+                # The path can change, so we search for the link.
+                link_path_pattern = f"/dev/serial/by-id/*{self.serial_num}*"
+                matching_links = glob.glob(link_path_pattern)
+                if matching_links:
+                    self.port1 = matching_links[0]
+                    self.logger.info(f"Found serial adapter by ID '{self.serial_num}' at '{self.port1}'")
+                else:
+                    self.logger.error(f"No serial adapter found with serial number containing '{self.serial_num}'!")
+                    time.sleep(10)
+                    return # Exit the function to try again later
+            except Exception as e:
+                self.logger.error(f"Error while searching for serial device by ID: {e}")
                 time.sleep(10)
-            elif len(ports) == 1:
-                self.port1 = ports[0]
-                self.port2 = None
-                self.logger.info('One serial adapter was found')
-            elif len(ports) == 2:
-                self.port1 = ports[0]
-                self.port2 = ports[1]
-                self.logger.info('Two serial adapters were found')
-            else:
-                self.logger.error('More than two serial adapters were found!')
-                time.sleep(10)
+                return
 
-        # Try to connect to one or both adapters
+        # If a port was found, try to connect to it.
         if self.port1:
             try:
-                self.__ser1 = serial.Serial(self.port1, self.baudrate1, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.5, write_timeout=0.5)
+                self.__ser1 = serial.Serial(
+                    self.port1, 
+                    self.baudrate1, 
+                    bytesize=serial.EIGHTBITS, 
+                    parity=serial.PARITY_NONE, 
+                    stopbits=serial.STOPBITS_ONE, 
+                    timeout=0.5, 
+                    write_timeout=0.5
+                )
                 self.__ser1.reset_input_buffer()
-
                 self.__connected = True
+                self.logger.info(f"Serial connection to '{self.port1}' established for direct heater control.")
 
-                self.logger.info('Serial connection to '+self.port1+' established')
+                # In direct control mode, __ser1 is always the heater port.
+                self.__ser_heater = self.__ser1
 
-            except serial.serialutil.SerialException:
-                self.logger.critical('Cannot connect to serial port!')
+            except serial.serialutil.SerialException as e:
+                self.logger.critical(f"Cannot connect to serial port '{self.port1}': {e}")
                 time.sleep(10)
-
-        if self.port2:
-            try:
-                self.__ser2 = serial.Serial(self.port2, self.baudrate2, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.5, write_timeout=0.5)
-                self.__ser2.reset_input_buffer()
-
-                self.logger.info('Serial connection to '+self.port2+' established')
-
-            except serial.serialutil.SerialException:
-                self.logger.error('Cannot connect to serial port!')
-                time.sleep(10)
-
-        self.__write_lock_timer = None
-        self.__write_lock_delay = 10
-
-        self.__ser_heater = None
-        self.__ser_controller = None
 
     def __disconnect(self):
         if self.__ser1:
@@ -430,76 +430,57 @@ class AutotermPassthrough(AutotermUtils):
         while self.__working:
             if not self.__connected:
                 self.__reconnect()
-            else:
-                if self.__message_waiting(self.__ser1) > 0:
-                    message = self.__ser1.read(1)
-                    if message == b'\x1b':
-                        self.__write_message(self.__ser2, message)
-                        self.logger.debug('Initialization message forwarded (1 >> 2: {})'.format(message.hex()))
-                        continue
-                    if message != b'\xaa':
-                        self.__ser1.reset_input_buffer()
-                        self.logger.warning('Unknown message detected, disposed (1 >> 2: {})'.format(message.hex()))
-                        continue
-                    message += self.__ser1.read(2)
-                    message += self.__ser1.read(message[-1]+4)
+                continue # Go to next loop iteration after attempting reconnect
 
-                    self.__write_message(self.__ser2, message)
-                    self.logger.debug('Message forwarded (1 >> 2: {})'.format(message.hex()))
-                    self.__process_message(message, self.__ser1)
+            # --- MODIFIED: Listen only on the single port for messages FROM the heater ---
+            if self.__message_waiting(self.__ser1) > 0:
+                message = self.__ser1.read(1)
+                if message != b'\xaa': # Look for the start of a message
+                    self.__ser1.reset_input_buffer()
+                    self.logger.warning(f'Unknown byte detected, disposed: {message.hex()}')
+                    continue
+                
+                # Read the rest of the message based on its length field
+                header = self.__ser1.read(2)
+                if len(header) < 2: continue
+                message += header
+                payload_len = header[1]
+                message += self.__ser1.read(payload_len + 4)
 
-                if self.__message_waiting(self.__ser2) > 0:
-                    message = self.__ser2.read(1)
-                    if message == b'\x1b':
-                        self.__write_message(self.__ser1, message)
-                        self.logger.debug('Initialization message forwarded (2 >> 1: {})'.format(message.hex()))
-                        continue
-                    if message != b'\xaa':
-                        self.__ser2.reset_input_buffer()
-                        self.logger.warning('Unknown message detected, disposed (2 >> 1: {})'.format(message.hex()))
-                        continue
-                    message += self.__ser2.read(2)
-                    message += self.__ser2.read(message[-1]+4)
+                self.logger.debug(f'Received message from heater: {message.hex()}')
+                self.__process_message(message, self.__ser1)
 
-                    self.__write_message(self.__ser1, message)
-                    self.logger.debug('Message forwarded (2 >> 1: {})'.format(message.hex()))
-                    self.__process_message(message, self.__ser2)
+            # --- MODIFIED: Check if we need to SEND a message TO the heater ---
+            # This part remains mostly the same, but it's now cleaner.
+            if self.__write_lock_timer and time.time() >= self.__write_lock_timer:
+                self.logger.error('Write lock timer has expired, the heater did not respond.')
+                self.__write_lock_timer = None
 
-                if self.__write_lock_timer:
-                    if time.time() >= self.__write_lock_timer:
-                        self.logger.error('Write lock timer has expired, the heater did not respond'.format(message.hex()))
-                        self.__write_lock_timer = None
+            if len(self.__send_to_heater) > 0 and not self.__write_lock_timer:
+                message_to_send = self.__send_to_heater.pop(0)
+                self.__write_message(self.__ser_heater, message_to_send)
+                self.logger.info(f'Program sends message to heater: {message_to_send.hex()}')
+                self.__write_lock_timer = time.time() + self.__write_lock_delay
 
-                if len(self.__send_to_heater) > 0 and not self.__write_lock_timer:
-                    message = self.__send_to_heater.pop(0)
-                    if self.__ser_heater:
-                        self.__write_message(self.__ser_heater, message)
-                        self.logger.info('Program sends message to heater ({})'.format(message.hex()))
-                    else:
-                        self.__write_message(self.__ser1, message)
-                        self.__write_message(self.__ser2, message)
-                        self.logger.warning('Program sends message to both adapters ({})'.format(message.hex()))
-                    self.__write_lock_timer = time.time() + self.__write_lock_delay
+            # --- All timer-based actions (shutdown, status polling) remain the same ---
+            if self.__heater_timer and time.time() >= self.__heater_timer:
+                self.shutdown()
 
-                if self.__heater_timer:
-                    if time.time() >= self.__heater_timer:
-                        self.shutdown()
+            if self.__shutdown_request:
+                if self.__heater_status1[0] == 0:
+                    self.__shutdown_request = False
+                elif time.time() > self.__shutdown_timer + self.__shutdown_delay:
+                    message = self.build(0x03, 0x03)
+                    if message != 0: self.__send_to_heater.append(message)
+                    self.__shutdown_timer = time.time()
 
-                if self.__shutdown_request:
-                    if self.__heater_status1[0] == 0:
-                        self.__shutdown_request = False
-                    elif time.time() > self.__shutdown_timer + self.__shutdown_delay:
-                        message = self.build(0x03,0x03)
-                        if message != 0:
-                            self.__send_to_heater.append(message)
-                        self.__shutdown_timer = time.time()
+            if time.time() >= self.__status_timer + self.__status_delay and not self.__write_lock_timer:
+                self.asks_for_status()
 
-                if time.time() >= self.__status_timer + self.__status_delay and not self.__write_lock_timer:
-                    self.asks_for_status()
-
-                if time.time() >= self.__settings_timer + self.__settings_delay and not self.__write_lock_timer:
-                    self.asks_for_settings()
-
+            if time.time() >= self.__settings_timer + self.__settings_delay and not self.__write_lock_timer:
+                self.asks_for_settings()
+            
+            time.sleep(0.1) # Small sleep to prevent busy-looping
 
     # Heater and ventilation controlling
     def get_heater_timer(self):
