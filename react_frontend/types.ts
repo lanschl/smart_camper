@@ -24,6 +24,9 @@ export interface DieselHeaterState {
   powerLevel: number; // Target power level %
   ventilationLevel: number; // Target ventilation level %
   timer: number | null; // minutes remaining
+  startTimer?: number | null; // UI state: hours until start
+  runTimer?: number | null;   // UI state: total run duration in hours
+
   readings: {
     heaterTemp: number;
     externalTemp: number;
@@ -31,7 +34,13 @@ export interface DieselHeaterState {
     flameTemp: number;
     panelTemp: number;
   };
-  errors: number | null; // Error code
+  errors: number | null;
+  
+  // This is a temporary property used to send commands
+  command?: string; 
+  value?: any;
+  action?: any;
+  run_timer_minutes?: number | null;
 }
 
 

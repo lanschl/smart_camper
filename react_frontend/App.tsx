@@ -40,12 +40,23 @@ const initialVanState: VanState = {
   floorHeating: { id: 'floor_heat', name: 'Heated Floors', level: 0 },
   dieselHeater: {
     status: 'off',
-    mode: 'temperature',
-    setpoint: 20,
+    mode: 'power',
+    setpoint: 0,
     powerLevel: 0,
     ventilationLevel: 0,
     timer: null,
-    readings: { heaterTemp: 0, externalTemp: 0, voltage: 0, flameTemp: 0, panelTemp: 0 },
+    
+    // --- ADD THESE TWO LINES ---
+    startTimer: null,
+    runTimer: null,
+
+    readings: { 
+      heaterTemp: 0, 
+      externalTemp: 0, 
+      voltage: 0, 
+      flameTemp: 0, 
+      panelTemp: 0 
+    },
     errors: null,
   }
 };
