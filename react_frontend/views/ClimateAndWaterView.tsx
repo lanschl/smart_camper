@@ -4,14 +4,8 @@ import FatSliderControl from '../components/FatSliderControl';
 import SwitchButtonControl from '../components/SwitchButtonControl';
 import { PowerIcon, HeaterIcon, TemperatureIcon, FlameIcon, FanIcon, BatteryIcon, WarningIcon } from '../components/Icons';
 
-// --- This map remains the same ---
-const statusTextMap: { [key in DieselHeaterState['status']]: string } = {
-  off: 'Heater Off',
-  starting: 'Starting...',
-  warming_up: 'Warming Up',
-  running: 'Running',
-  shutting_down: 'Shutting Down',
-};
+// --- REMOVED statusTextMap ---
+// The backend now sends the raw status string.
 
 // --- These sub-components remain the same ---
 const DataPoint: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
@@ -62,8 +56,11 @@ interface HeatingViewProps {
 const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating, dieselHeater, onUpdate }) => {
   
   // --- New state for the timer mode toggle ---
-  // (Assumes 'timer' is a valid DieselHeaterMode in your types)
   const [timerType, setTimerType] = useState<'start_in' | 'run_for'>('run_for');
+
+  // --- *** NEW: State to remember which mode to start in (Fixes 'timer' mode bug) *** ---
+  // This remembers the *actual* mode (Temp/Power/Vent) even when you're on the "Timer" tab
+  const [startMode, setStartMode] = useState<DieselHeaterMode>('temperature');
 
   // --- Simple handlers remain the same ---
   const handleBoilerToggle = (isOn: boolean) => {
@@ -87,36 +84,37 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
     onUpdate(prevState => ({ ...prevState, dieselHeater: { ...prevState.dieselHeater, ...command }}));
   };
   
+  // --- *** UPDATED: handleStartHeater *** ---
   const handleStartHeater = () => {
-    const { mode, powerLevel, setpoint, ventilationLevel, runTimer, startTimer } = dieselHeater;
+    // Get UI slider values (in hours)
+    const { powerLevel, setpoint, ventilationLevel, runTimer, startTimer } = dieselHeater;
     
-    // Determine the value based on the mode
+    // Determine the value and mode-to-send based on the *remembered* startMode
     let value: number;
-    switch (mode) {
+    let modeToSend: DieselHeaterMode;
+
+    switch (startMode) { // Use startMode, NOT dieselHeater.mode
         case 'power':
             value = powerLevel;
-            break;
-        case 'temperature':
-            value = setpoint;
+            modeToSend = 'power';
             break;
         case 'ventilation':
             value = ventilationLevel;
+            modeToSend = 'ventilation';
             break;
+        case 'temperature':
         default:
-             // Default to power mode if something is off, or handle 'timer' mode
-             // If mode is 'timer', we don't send a value, just the timers.
-             // The backend should know what to do if the mode is 'timer'.
-             // Or, we assume the 'active' mode is still one of the others.
-             // Let's assume the mode is whatever is *not* 'timer'.
-             // This logic assumes 'mode' is one of temp/power/vent.
-            value = setpoint; // Default to temperature
+            value = setpoint;
+            modeToSend = 'temperature';
+            break;
     }
 
+    // Build the action that the backend will run
     const startAction = {
-        command: 'turn_on',
-        mode: mode,
+        command: modeToSend === 'ventilation' ? 'turn_on_ventilation' : 'turn_on',
+        mode: modeToSend,
         value: value,
-        run_timer_minutes: runTimer ? runTimer * 60 : null, // Convert hours to minutes
+        run_timer_minutes: runTimer && runTimer > 0 ? runTimer * 60 : null, // Convert hours to minutes
     };
 
     if (startTimer && startTimer > 0) {
@@ -126,25 +124,32 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
             value: startTimer * 60, // Convert hours to minutes
             action: startAction,
         });
-        // Optimistically set status
-        handleHeaterUpdate({ status: 'starting' }); // Or a new status like 'scheduled'
     } else {
         // Otherwise, send the start command directly
         sendHeaterCommand(startAction);
-        // Optimistically update the UI to show 'starting' immediately
-        handleHeaterUpdate({ status: 'starting' });
     }
+    // Optimistic UI update (backend will confirm)
+    handleHeaterUpdate({ status: 'Starting...' });
   };
     
+  // --- *** UPDATED: handleStopHeater *** ---
   const handleStopHeater = () => {
-    if (dieselHeater.startTimer && dieselHeater.status === 'off') { // Check if a timer is set but heater is off
+    // Get backend timer/status state
+    const { timerStartIn, status } = dieselHeater;
+
+    // Check if a 'start_in' timer is pending
+    if (timerStartIn && timerStartIn > 0) {
          // If a start timer is pending, cancel it
          sendHeaterCommand({ command: 'cancel_start_timer' });
-         handleHeaterUpdate({ startTimer: null, status: 'off' }); // Clear timer and ensure status is off
-    } else if (dieselHeater.status !== 'off' && dieselHeater.status !== 'shutting_down') {
-         // If the heater is running, shut it down
-         sendHeaterCommand({ command: 'shutdown' });
-         handleHeaterUpdate({ status: 'shutting_down' }); // Optimistic UI update
+         handleHeaterUpdate({ timerStartIn: null, status: 'Standby' }); // Optimistic UI update
+    } else {
+         // If the heater is on or starting, shut it down
+         // Check if status is NOT one of the "off" states
+         const isOff = status === 'Standby' || status.includes('Shutting Down') || status.includes('Cooling Down');
+         if (!isOff) {
+            sendHeaterCommand({ command: 'shutdown' });
+            handleHeaterUpdate({ status: 'Shutting Down', timerShutdownIn: null }); // Optimistic UI update
+         }
     }
   };
 
@@ -158,15 +163,24 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
     }
   };
 
-  // --- Derived state variables for UI logic ---
-  const isTransitioning = dieselHeater.status === 'starting' || dieselHeater.status === 'shutting_down';
-  const isStartTimerPending = (dieselHeater.startTimer || 0) > 0 && dieselHeater.status === 'off';
-  const isHeaterOn = dieselHeater.status !== 'off';
+  // --- *** UPDATED: Derived state variables for UI logic *** ---
+  const { status, timerStartIn, timerShutdownIn } = dieselHeater;
+
+  // A timer is pending if the backend says timerStartIn > 0
+  const isStartTimerPending = (timerStartIn || 0) > 0;
+
+  // The heater is "on" if it's not in an "off" state and not just pending
+  const isOff = status === 'Standby' || status.includes('Shutting Down') || status.includes('Cooling Down');
+  const isHeaterOn = !isOff && !isStartTimerPending;
+
+  // It's "transitioning" if it's starting or stopping
+  const isTransitioning = status.includes('Starting') || status.includes('Shutting Down') || status.includes('Cooling Down');
   
   // Controls should be disabled if the heater is on OR a timer is pending
   const disableSettings = isHeaterOn || isStartTimerPending;
 
   const renderDieselHeaterControl = () => {
+      // This logic remains the same, as it's for the UI state
       switch (dieselHeater.mode) {
           case 'temperature':
               return (
@@ -201,7 +215,7 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
                       disabled={disableSettings}
                   />
               );
-          // --- New 'timer' mode case ---
+          // --- Timer mode case ---
           case 'timer':
               const isStartIn = timerType === 'start_in';
               const level = isStartIn ? (dieselHeater.startTimer || 0) : (dieselHeater.runTimer || 0);
@@ -230,6 +244,7 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
                           )}
                           color={isStartIn ? "#4f46e5" : "#16a34a"} // indigo / green
                           min={0} max={12} unit="h"
+                          step={0.5} // Allow 30-min increments
                           disabled={disableSettings}
                       />
                   </div>
@@ -244,7 +259,7 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
       <h1 className="text-3xl font-bold mb-6 text-orange-200/65">Heating & Climate</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Basic Systems Card */}
+        {/* Basic Systems Card (Unchanged) */}
         <div className="bg-orange-300/40 backdrop-blur-lg border border-white/10 rounded-2xl p-6 flex flex-col justify-center gap-8 shadow-xl shadow-orange-900/20 transition-all duration-300 ease-in-out hover:shadow-2xl hover:shadow-orange-900/40 hover:-translate-y-1.5">
             <SwitchButtonControl
                 label={boiler.name}
@@ -266,14 +281,17 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
             <div className="flex justify-between items-start">
                 <div>
                     <h3 className="text-xl font-bold text-stone-100">Diesel Heater</h3>
-                    <p className="text-amber-700 font-semibold">
+                    {/* --- *** UPDATED: Status and Timer Display *** --- */}
+                    <p className="text-amber-700 font-semibold h-6">
                         {isStartTimerPending 
-                            ? `Starts in ${dieselHeater.startTimer}h` 
-                            : statusTextMap[dieselHeater.status]
+                            ? `Starts in ${timerStartIn} min` 
+                            : (dieselHeater.status || 'Standby') // Display raw status
                         }
                     </p>
-                    {isHeaterOn && !isTransitioning && dieselHeater.timer && (
-                        <p className="text-sm text-stone-300">Time remaining: {dieselHeater.timer}</p>
+                    {isHeaterOn && !isTransitioning && timerShutdownIn && timerShutdownIn > 0 && (
+                        <p className="text-sm text-stone-300">
+                          Time remaining: {timerShutdownIn} min
+                        </p>
                     )}
                 </div>
                 <label htmlFor="diesel-heater-power" className="relative inline-flex items-center cursor-pointer">
@@ -281,35 +299,36 @@ const HeatingView: React.FC<HeatingViewProps> = ({ sensors, boiler, floorHeating
                         type="checkbox" 
                         id="diesel-heater-power"
                         className="sr-only peer" 
-                        checked={isHeaterOn || isStartTimerPending}
-                        disabled={isTransitioning}
+                        checked={isHeaterOn || isStartTimerPending} // Use new derived state
+                        disabled={isTransitioning} // Use new derived state
                         onChange={handlePowerToggle}
                     />
                     <div className="w-14 h-8 bg-stone-700 rounded-full peer peer-focus:ring-4 peer-focus:ring-amber-800 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-stone-600 after:border after:rounded-full after:h-6 after:w-6 after:transition-all after:duration-300 after:ease-in-out peer-checked:bg-amber-700 peer-checked:shadow-lg peer-checked:shadow-amber-800/40 transition-all duration-300 ease-in-out peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
                 </label>
             </div>
             
-            {dieselHeater.errors && dieselHeater.errors > 0 && (
+            {/* --- *** UPDATED: Error Display *** --- */}
+            {dieselHeater.errors && dieselHeater.errors !== 'No Error' && (
                 <div className="flex items-center p-3 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20">
                     <WarningIcon className="w-6 h-6 mr-3 flex-shrink-0" />
-                    <span className="font-semibold">Heater Error Code: {dieselHeater.errors}</span>
+                    <span className="font-semibold">Heater Error: {dieselHeater.errors}</span>
                 </div>
             )}
             
+            {/* DataPoint display remains the same, but will get new data */}
             <div className="grid grid-cols-3 gap-3">
                 <DataPoint icon={<TemperatureIcon className="w-6 h-6"/>} label="Heater" value={`${dieselHeater.readings.heaterTemp}°C`} />
                 <DataPoint icon={<FlameIcon className="w-6 h-6"/>} label="Flame" value={`${dieselHeater.readings.flameTemp}°C`} />
-                {/* Updated to use sensor data like in your new file */}
                 <DataPoint icon={<TemperatureIcon className="w-6 h-6"/>} label="Cabin" value={`${sensors.insideTemp.toFixed(1)}°C`} />
             </div>
 
             <div className="flex flex-col gap-4 mt-2">
                 <div className="grid grid-cols-4 gap-3">
-                    <ModeButton label="Temp" isActive={dieselHeater.mode === 'temperature'} onClick={() => handleHeaterUpdate({ mode: 'temperature' })} disabled={disableSettings} />
-                    <ModeButton label="Power" isActive={dieselHeater.mode === 'power'} onClick={() => handleHeaterUpdate({ mode: 'power' })} disabled={disableSettings} />
-                    <ModeButton label="Vent" isActive={dieselHeater.mode === 'ventilation'} onClick={() => handleHeaterUpdate({ mode: 'ventilation' })} disabled={disableSettings} />
-                    {/* New Timer Mode Button */}
-                    <ModeButton label="Timer" isActive={dieselHeater.mode === 'timer'} onClick={() => handleHeaterUpdate({ mode: 'timer' as DieselHeaterMode })} disabled={disableSettings} />
+                    {/* --- *** UPDATED: Mode Buttons set startMode *** --- */}
+                    <ModeButton label="Temp" isActive={dieselHeater.mode === 'temperature'} onClick={() => { handleHeaterUpdate({ mode: 'temperature' }); setStartMode('temperature'); }} disabled={disableSettings} />
+                    <ModeButton label="Power" isActive={dieselHeater.mode === 'power'} onClick={() => { handleHeaterUpdate({ mode: 'power' }); setStartMode('power'); }} disabled={disableSettings} />
+                    <ModeButton label="Vent" isActive={dieselHeater.mode === 'ventilation'} onClick={() => { handleHeaterUpdate({ mode: 'ventilation' }); setStartMode('ventilation'); }} disabled={disableSettings} />
+                    <ModeButton label="Timer" isActive={dieselHeater.mode === 'timer'} onClick={() => handleHeaterUpdate({ mode: 'timer' })} disabled={disableSettings} />
                 </div>
                 <div>
                     {renderDieselHeaterControl()}

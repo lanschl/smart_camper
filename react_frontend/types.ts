@@ -14,8 +14,8 @@ export interface SwitchDevice {
 }
 
 // New detailed types for the Diesel Heater
-export type DieselHeaterStatus = 'off' | 'starting' | 'warming_up' | 'running' | 'shutting_down';
-export type DieselHeaterMode = 'temperature' | 'power' | 'ventilation';
+export type DieselHeaterStatus = string;
+export type DieselHeaterMode = 'temperature' | 'power' | 'ventilation' | 'timer';
 
 export interface DieselHeaterState {
   status: DieselHeaterStatus;
@@ -23,19 +23,17 @@ export interface DieselHeaterState {
   setpoint: number; // Target temperature
   powerLevel: number; // Target power level %
   ventilationLevel: number; // Target ventilation level %
-  timer: number | null; // minutes remaining
+  
+  // --- UPDATED FIELDS ---
+  timerStartIn: number | null;     // REPLACES old 'timer'. In minutes, from backend.
+  timerShutdownIn: number | null;  // NEW. In minutes, from backend.
+  errors: string | null;           // Was number, now string.
+
+  // --- UI-ONLY STATE ---
+  // These are for the sliders, in HOURS.
   startTimer?: number | null; // UI state: hours until start
   runTimer?: number | null;   // UI state: total run duration in hours
 
-  readings: {
-    heaterTemp: number;
-    externalTemp: number;
-    voltage: number;
-    flameTemp: number;
-    panelTemp: number;
-  };
-  errors: number | null;
-  
   // This is a temporary property used to send commands
   command?: string; 
   value?: any;
