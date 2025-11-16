@@ -1,619 +1,370 @@
-#!/usr/bin/python3
-# Filename: autoterm_heater.py
-
 import logging
 import serial
-import serial.tools.list_ports as list_ports
-import threading
+import serial.tools.list_ports
 import time
+import threading
+import glob
+import os
+from typing import Dict, Any, Optional, Tuple
 
-################
-versionMajor = 0
-versionMinor = 1
-versionPatch = 2
-################
+# --- Configuration ---
+HEARTBEAT_INTERVAL_SECONDS = 4
 
-status_text = {0:'heater off', 1:'starting', 2: 'warming up', 3:'running', 4:'shuting down'}
+# --- Mappings (From new documentation) ---
+status_text = {
+    (0, 1): 'Standby', (1, 0): 'Starting - Cooling Sensor', (1, 1): 'Starting - Ventilation',
+    (2, 1): 'Starting - Glow Plug', (2, 2): 'Starting - Ignition 1', (2, 3): 'Starting - Ignition 2',
+    (2, 4): 'Starting - Heating Chamber', (3, 0): 'Heating', (3, 4): 'Cooling Down',
+    (3, 5): 'Ventilating (Setpoint Reached)', (3, 35): 'Fan-Only Mode', (4, 0): 'Shutting Down'
+}
 
-class Message:
-    def __init__(self, preamble, device, length, msg_id1, msg_id2, payload = b''):
-        self.preamble = preamble
-        self.device = device
-        self.length = length
-        self.msg_id1 = msg_id1
-        self.msg_id2 = msg_id2
-        self.payload = payload
+error_text = {
+    0: 'No Error', 1: 'Overheating', 2: 'Under-voltage', 3: 'Glow Plug Failure',
+    4: 'Fuel Pump Failure', 5: 'Fan Motor Failure', 6: 'Flame Sensor Failure',
+    7: 'Over-voltage', 8: 'Ignition Failure (No Flame)', 9: 'Flameout during operation',
+    10: 'Control Unit Failure'
+}
 
-class AutotermUtils:
-    def crc16(self, package : bytes):
-        crc = 0xffff
-        for byte in package:
-            crc ^= byte
-            for i in range(8):
-                if (crc & 0x0001) != 0:
-                    crc >>= 1
-                    crc ^= 0xa001
-                else:
-                    crc >>= 1;
-        return crc.to_bytes(2, byteorder='big')
-
-    def parse(self, package : bytes, minPacketSize = 7):
-        if len(package) < minPacketSize:
-            self.logger.error('Parse: invalid lenght of package! ({})'.format(package.hex()))
-            return 0
-        while package[0] != 0xaa:
-            if len(package) < minPacketSize:
-                self.logger.error('Parse: invalid package! ({})'.format(package.hex()))
-                return 0
-            package = package[1:]
-        if package[0] != 0xaa:
-            self.logger.error('Parse: invalid bit 0 of package! ({})'.format(package.hex()))
-            return 0
-        if len(package) != int(package[2]) + minPacketSize:
-            self.logger.error('Parse: invalid lenght of package! ({})'.format(package.hex()))
-            return 0
-        if package[1] not in [0x00, 0x02, 0x03, 0x04]:
-            self.logger.error('Parse: invalid bit 1 of package! ({})'.format(package.hex()))
-            return 0
-        if package[-2:] != self.crc16(package[:-2]):
-            self.logger.error('Parse: invalid crc of package! ({})'.format(package.hex()))
-            return 0
-
-        return Message(package[0], package[1], package[2], package[3], package[4], package[5:-2])
-
-    def build(self, device, msg_id2, msg_id1=0x00, payload = b''):
-        if device not in [0x00, 0x02, 0x03, 0x04]:
-            self.logger.error('Built: invalid device! ({})'.format(device))
-            return 0
-        if msg_id1 not in range(256):
-            self.logger.error('Built: invalid id1! ({})'.format(msg_id1))
-            return 0
-        if msg_id2 not in range(256):
-            self.logger.error('Built: invalid id2! ({})'.format(msg_id1))
-            return 0
-
-        package = b'\xaa'+device.to_bytes(1, byteorder='big')+len(payload).to_bytes(1, byteorder='big')+msg_id1.to_bytes(1, byteorder='big')+msg_id2.to_bytes(1, byteorder='big')+payload
-
-        return package + self.crc16(package)
-
-
-class AutotermPassthrough(AutotermUtils):
-    def __init__(self, log_path, serial_port1 = None, baudrate1 = 2400, serial_port2 = None, baudrate2 = 2400, serial_num = None, log_level = logging.DEBUG):
-        self.port1 = serial_port1
-        self.baudrate1 = baudrate1
-        self.port2 = serial_port2
-        self.baudrate2 = baudrate2
+class AutotermHeaterController:
+    """
+    A robust controller for the Autoterm heater, based on the new,
+    working communication protocol.
+    """
+    def __init__(self, serial_num: str, log_path: str, log_level: int = logging.INFO, baudrate: int = 9600):
         self.serial_num = serial_num
-
-        self.logger = logging.getLogger(__name__)
+        self.port = None
+        self.baudrate = baudrate
+        self.comm_lock = threading.Lock()
+        self.ser = None
+        self.is_initialized = False
+        
+        # --- Internal State ---
+        self.state_lock = threading.Lock()
+        self.last_status: Dict[str, Any] = {}
+        self.current_mode = 'off' # 'off', 'temp', 'power', 'fan'
+        self.current_setpoint = 0
+        self.cabin_temperature = 20 # Default, will be updated by heater.py
+        
+        # --- Logging ---
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(log_level)
-        handler = logging.FileHandler(log_path)
-        formatter = logging.Formatter(fmt = '%(asctime)s  %(name)s %(levelname)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
-        handler.setFormatter(formatter)
-        handler.setLevel(logging.DEBUG)
-        self.logger.addHandler(handler)
-
-        self.logger.info('AutotermPassthrough v {}.{}.{} is starting.'.format(versionMajor, versionMinor, versionPatch))
-
-        self.__connected = False
-        while not self.__connected:
-            self.__connect()
-
-        self.__working = False
-        self.__start_working()
-
-    def __write_message(self, ser_port, message):
         try:
-            if ser_port.write(message) != len(message):
-                self.logger.critical('Cannot send whole message to serial port {}!'.format(ser_port.port))
-        except serial.serialutil.SerialException:
-            self.__connected = False
-            self.logger.error('Cannot write to serial port {}!'.format(ser_port.port))
-
-    def __message_waiting(self, ser_port):
-        try:
-            return ser_port.in_waiting
-        except OSError:
-            self.__connected = False
-            self.logger.error('Cannot check serial port {} for incomming messages!'.format(ser_port.port))
-            return 0
-        self.__ser2.close()
-
-    def __connect(self):
-        """
-        MODIFIED FOR DIRECT CONTROL: Connects to a single specified serial port.
-        """
-        # We ignore the dual-port logic and focus only on port1.
-        # The serial number is used to find the device path (e.g., /dev/ttyUSB0).
-        if self.serial_num:
-            # Use a more robust method to find the device path from the full ID string
-            try:
-                import glob
-                # The full ID is in config, e.g., 'usb-FTDI_FT232R_USB_UART_A50285BI-if00-port0'
-                # We need to find the device file it links to.
-                # The path can change, so we search for the link.
-                link_path_pattern = f"/dev/serial/by-id/*{self.serial_num}*"
-                matching_links = glob.glob(link_path_pattern)
-                if matching_links:
-                    self.port1 = matching_links[0]
-                    self.logger.info(f"Found serial adapter by ID '{self.serial_num}' at '{self.port1}'")
-                else:
-                    self.logger.error(f"No serial adapter found with serial number containing '{self.serial_num}'!")
-                    time.sleep(10)
-                    return # Exit the function to try again later
-            except Exception as e:
-                self.logger.error(f"Error while searching for serial device by ID: {e}")
-                time.sleep(10)
-                return
-
-        # If a port was found, try to connect to it.
-        if self.port1:
-            try:
-                self.__ser1 = serial.Serial(
-                    self.port1, 
-                    self.baudrate1, 
-                    bytesize=serial.EIGHTBITS, 
-                    parity=serial.PARITY_NONE, 
-                    stopbits=serial.STOPBITS_ONE, 
-                    timeout=0.5, 
-                    write_timeout=0.5
-                )
-                self.__ser1.reset_input_buffer()
-                self.__connected = True
-                self.logger.info(f"Serial connection to '{self.port1}' established for direct heater control.")
-
-                # In direct control mode, __ser1 is always the heater port.
-                self.__ser_heater = self.__ser1
-
-            except serial.serialutil.SerialException as e:
-                self.logger.critical(f"Cannot connect to serial port '{self.port1}': {e}")
-                time.sleep(10)
-
-    def __disconnect(self):
-        if self.__ser1:
-            self.__ser1.close()
-        if self.__ser2:
-            self.__ser2.close()
-        self.__connected = False
-
-    def __reconnect(self):
-        self.__disconnect()
-        while not self.__connected:
-            self.__connect()
-
-    def __start_working(self):
-        self.__working = True
-
-        # Buffer for messages 
-        self.__send_to_heater = []
-
-        self.__heater_timer = None
-        self.__shutdown_request = False
-        self.__shutdown_timer = time.time()
-        self.__shutdown_delay = 10              # Sets how often raspberry sends messages to turn heater off
-
-        # Heater info value
-        # Following values are stored in tuples with timestamp
-        self.__heater_software_version = (None, None, None, None, None)
-        self.__heater_serial_number = (None, None, None)
-
-        # Heater settings values
-        self.__settings_timer = time.time()
-        self.__settings_delay = 5               # Sets how often raspberry asks for settings        
-        # Following values are stored in tuples with timestamp
-        self.__heater_mode = (None, None)
-        self.__heater_setpoint = (None, None)
-        self.__heater_ventilation = (None, None)
-        self.__heater_power_level = (None, None)
-
-        # Heater status values
-        self.__status_timer = time.time()
-        self.__status_delay = 5                 # Sets how often raspberry asks for status
-        # Following values are stored in tuples with timestamp
-        self.__heater_status1 = (None, None)
-        self.__heater_status2 = (None, None)
-        self.__heater_errors = (None, None)
-        self.__heater_temperature = (None, None)
-        self.__external_temperature = (None, None)
-        self.__battery_voltage = (None, None)
-        self.__flame_temperature = (None, None)
-
-        # Controller temperature value
-        # Following values are stored in tuples with timestamp
-        self.__controller_temperature = (None, None)
-
-        # Diagnostic values
-        # Following values are stored in tuples with timestamp
-        self.__d_status1 = (None, None)
-        self.__d_status2 = (None, None)
-        self.__d_counter1 = (None, None)
-        self.__d_counter2 = (None, None)
-        self.__d_defined_rev = (None, None)
-        self.__d_measured_rev = (None, None)
-        self.__d_fuel_pump1 = (None, None)
-        self.__d_fuel_pump2 = (None, None)
-        self.__d_chamber_temperature = (None, None)
-        self.__d_flame_temperature = (None, None)
-        self.__d_external_temperature = (None, None)
-        self.__d_heater_temperature = (None, None)
-        self.__d_battery_voltage = (None, None)
-
-        # Create and start worker thread
-        self.__worker_thread = threading.Thread(target=self.__worker_thread, daemon=True)
-        self.__worker_thread.start()
-
-    def __stop_working(self):
-        self.__working = False
-        self.__worker_thread.join(10.0)
-
-    def __process_message(self, message, ser_message):
-        new_message = self.parse(message)
-
-        if new_message == 0:
-            return 0
-
-        # Heater and controller port assignment
-        if not self.__ser_controller and new_message.device == 0x03:
-            self.__ser_controller = ser_message
-        if not self.__ser_heater and new_message.device == 0x04:
-            self.__ser_heater = ser_message
-
-        # Initialization message received
-        if new_message.device == 0x00:
-            self.logger.info('Inicialization message ({})'.format(message.hex()))
-
-        # Disgnostic message received
-        elif new_message.device == 0x02:
-            if   new_message.msg_id2 == 0x00:
-                self.logger.info('PC sends initialization diagnostic message')
-            # Diagnostic message from heater received
-            elif new_message.msg_id2 == 0x01:
-                if len(new_message.payload) == 72:
-                    self.__d_status1 = (new_message.payload[0], time.time())
-                    self.__d_status2 = (new_message.payload[1], time.time())
-                    self.__d_counter1 = (int.from_bytes(new_message.payload[5:8],'big'), time.time())
-                    self.__d_counter2 = (int.from_bytes(new_message.payload[8:11],'big'), time.time())
-                    self.__d_defined_rev = (new_message.payload[11], time.time())
-                    self.__d_measured_rev = (new_message.payload[12], time.time())
-                    self.__d_fuel_pump1 = (new_message.payload[14], time.time())
-                    self.__d_fuel_pump2 = (new_message.payload[16], time.time())
-                    self.__d_chamber_temperature = (int.from_bytes(new_message.payload[18:20],'big'), time.time())
-                    self.__d_flame_temperature = (int.from_bytes(new_message.payload[20:22],'big'), time.time())
-                    self.__d_external_temperature = (new_message.payload[24], time.time())
-                    self.__d_heater_temperature = (new_message.payload[25], time.time())
-                    self.__d_battery_voltage = (new_message.payload[27]/10, time.time())
-                    self.logger.info('Heater sends diagnostic message ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater sends diagnostic message, wrong payload length ({})'.format(new_message.payload.hex()))
-
-        # New message is from controller
-        elif new_message.device == 0x03:
-            # Do not send messages, waiting for response from the heater
-            self.__write_lock_timer = time.time() + self.__write_lock_delay
-            # 01 - Controller turns heater on
-            if   new_message.msg_id2 == 0x01:
-                self.__heater_timer = None
-                self.logger.info('Controller turns heater on with settings {}'.format(new_message.payload[2:].hex()))
-            # 02 - Controller asks for settings
-            elif new_message.msg_id2 == 0x02:
-                if new_message.length == 0:
-                    self.logger.info('Controller asks for settings')
-                else:
-                    self.__heater_timer = None
-                    self.logger.info('Controller set new settings ({})'.format(new_message.payload[2:].hex()))
-            # 03 - Controller turns off the heater
-            elif new_message.msg_id2 == 0x03:
-                self.__heater_timer = None
-                self.logger.info('Controller turns off the heater')
-            # 04 - Controller asks for serial number
-            elif new_message.msg_id2 == 0x04:
-                self.logger.info('Controller asks for serial number')
-            # 06 - Controller asks for software version
-            elif new_message.msg_id2 == 0x06:
-                self.logger.info('Controller asks for software version')
-            # 07 - Controller asks for status
-            elif new_message.msg_id2 == 0x0f:
-                self.logger.info('Controller asks for status')
-            # 11 - Controller reports temperature
-            elif new_message.msg_id2 == 0x11:
-                if len(new_message.payload) == 1:
-                    self.__controller_temperature = (new_message.payload[0], time.time())
-                    self.logger.info('Controller reports temperature {} °C'.format(new_message.payload[0]))
-                else:
-                    self.logger.warning('Controller reports temperature, wrong payload length ({})'.format(new_message.payload.hex()))
-            # 1c - Controller sends initialization message
-            elif new_message.msg_id2 == 0x1c:
-                self.logger.info('Controller sends initialization message')
-            # 23 - Controller turns ventilation
-            elif new_message.msg_id2 == 0x23:
-                self.logger.info('Controller turns ventilation on with settings {}'.format(new_message.payload[2:].hex()))
-            # Unknown message
-            else:
-                self.logger.warning('Unknown message from controller: {}'.format(message.hex()))
-
-        # New message is from heater
-        elif new_message.device == 0x04:
-            # Response from heater received, can send other messages
-            self.__write_lock_timer = None
-            # 01 - Heater confirms starting up
-            if   new_message.msg_id2 == 0x01:
-                if len(new_message.payload) == 6:
-                    self.__heater_mode = (new_message.payload[2], time.time())
-                    self.__heater_setpoint = (new_message.payload[3], time.time())
-                    self.__heater_ventilation = (new_message.payload[4], time.time())
-                    self.__heater_power_level = (new_message.payload[5], time.time())
-                    self.logger.info('Heater confirms starting up ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater confirms starting up, wrong payload length ({})'.format(new_message.payload.hex()))
-                # Reset settings timer
-                self.__settings_timer = time.time()
-            # 02 - Heater reports settings
-            elif new_message.msg_id2 == 0x02:
-                if len(new_message.payload) == 6:
-                    self.__heater_mode = (new_message.payload[2], time.time())
-                    self.__heater_setpoint = (new_message.payload[3], time.time())
-                    self.__heater_ventilation = (new_message.payload[4], time.time())
-                    self.__heater_power_level = (new_message.payload[5], time.time())
-                    self.logger.info('Heater reports settings ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater reports settings, wrong payload length ({})'.format(new_message.payload.hex()))
-                # Reset settings timer
-                self.__settings_timer = time.time()
-            # 03 - Heater confirms turn off request
-            elif new_message.msg_id2 == 0x03:
-                self.logger.info('Heater confirms turn off request')
-            # 04 - Heater reports serial number
-            elif new_message.msg_id2 == 0x04:
-                if len(new_message.payload) == 5:
-                    self.__heater_serial_number = (int.from_bytes(new_message.payload[0:2],'big') ,int.from_bytes(new_message.payload[2:5],'big') , time.time())
-                    self.logger.info('Heater reports serial number ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater reports serial number, wrong payload length ({})'.format(new_message.payload.hex()))
-            # 06 - Heater reports software version
-            elif new_message.msg_id2 == 0x06:
-                if len(new_message.payload) == 5:
-                    self.__heater_software_version = (new_message.payload[0], new_message.payload[1], new_message.payload[2], new_message.payload[3], time.time())
-                    self.logger.info('Heater reports software version ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater reports software version, wrong payload length ({})'.format(new_message.payload.hex()))
-            # 07 - Heater confirms turning on/off diagnostic mode
-            elif new_message.msg_id2 == 0x07:
-                if len(new_message.payload) == 1:
-                    if new_message.payload[0] == 0:
-                        self.logger.info('Heater confirms turning diagnostic mode off')
-                    elif new_message.payload == 1:
-                        self.logger.info('Heater confirms turning diagnostic mode on')
-                    else:
-                        self.logger.warning('Heater confirms turning diagnostic on/off, wrong payload value ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater confirms turning diagnostic on/off, wrong payload length ({})'.format(new_message.payload.hex()))
-            # 0f - Heater reports status
-            elif new_message.msg_id2 == 0x0f:
-                if len(new_message.payload) == 10:
-                    self.__heater_status1 = (new_message.payload[0], time.time())
-                    self.__heater_status2 = (new_message.payload[1], time.time())
-                    self.__heater_errors = (new_message.payload[2], time.time())
-                    self.__heater_temperature = (new_message.payload[3], time.time())
-                    self.__external_temperature = (new_message.payload[4], time.time())
-                    self.__battery_voltage = (new_message.payload[6]/10, time.time())
-                    self.__flame_temperature = (int.from_bytes(new_message.payload[7:9],'big'), time.time())
-                    self.logger.info('Heater reports status ({})'.format(new_message.payload.hex()))
-                else:
-                    self.logger.warning('Heater reports status, wrong payload length ({})'.format(new_message.payload.hex()))              
-                # Reset staus timer
-                self.__status_timer = time.time()
-            # 11 - Heater confirms controller temperature
-            elif new_message.msg_id2 == 0x11:
-                if len(new_message.payload) == 1:
-                    self.logger.info('Heater confirms controller temperature {} °C'.format(new_message.payload[0]))
-                else:
-                    self.logger.warning('Heater confirms controller temperature, wrong payload length ({})'.format(new_message.payload.hex()))
-            # 1c - Heater responds to initialization message
-            elif new_message.msg_id2 == 0x1c:
-                self.logger.info('Heater responds to initialization message')
-            # 23 - Heater confirms turning ventilation on
-            elif new_message.msg_id2 == 0x23:
-                self.logger.info('Heater confirms turning ventilation on ({})'.format(new_message.payload.hex()))   
-            # Unknown message
-            else:
-                self.logger.warning('Unknown message from heater ({})'.format(message.hex()))
-        # Unknown device id
-        else:
-            self.logger.warning('Unknown device id in message ({})'.format(message.hex()))
-        # Message processed
-        return 1
-
-
-    def __worker_thread(self):
-        self.logger.info('Worker started')
-
-        while self.__working:
-            if not self.__connected:
-                self.__reconnect()
-                continue # Go to next loop iteration after attempting reconnect
-
-            # --- MODIFIED: Listen only on the single port for messages FROM the heater ---
-            if self.__message_waiting(self.__ser1) > 0:
-                message = self.__ser1.read(1)
-                if message != b'\xaa': # Look for the start of a message
-                    self.__ser1.reset_input_buffer()
-                    self.logger.warning(f'Unknown byte detected, disposed: {message.hex()}')
-                    continue
-                
-                # Read the rest of the message based on its length field
-                header = self.__ser1.read(2)
-                if len(header) < 2: continue
-                message += header
-                payload_len = header[1]
-                message += self.__ser1.read(payload_len + 4)
-
-                self.logger.debug(f'Received message from heater: {message.hex()}')
-                self.__process_message(message, self.__ser1)
-
-            # --- MODIFIED: Check if we need to SEND a message TO the heater ---
-            # This part remains mostly the same, but it's now cleaner.
-            if self.__write_lock_timer and time.time() >= self.__write_lock_timer:
-                self.logger.error('Write lock timer has expired, the heater did not respond.')
-                self.__write_lock_timer = None
-
-            if len(self.__send_to_heater) > 0 and not self.__write_lock_timer:
-                message_to_send = self.__send_to_heater.pop(0)
-                self.__write_message(self.__ser_heater, message_to_send)
-                self.logger.info(f'Program sends message to heater: {message_to_send.hex()}')
-                self.__write_lock_timer = time.time() + self.__write_lock_delay
-
-            # --- All timer-based actions (shutdown, status polling) remain the same ---
-            if self.__heater_timer and time.time() >= self.__heater_timer:
-                self.shutdown()
-
-            if self.__shutdown_request:
-                if self.__heater_status1[0] == 0:
-                    self.__shutdown_request = False
-                elif time.time() > self.__shutdown_timer + self.__shutdown_delay:
-                    message = self.build(0x03, 0x03)
-                    if message != 0: self.__send_to_heater.append(message)
-                    self.__shutdown_timer = time.time()
-
-            if time.time() >= self.__status_timer + self.__status_delay and not self.__write_lock_timer:
-                self.asks_for_status()
-
-            if time.time() >= self.__settings_timer + self.__settings_delay and not self.__write_lock_timer:
-                self.asks_for_settings()
+            # Use the log path passed from the main app config
+            handler = logging.FileHandler(log_path)
+            formatter = logging.Formatter(fmt='%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
+            handler.setFormatter(formatter)
+            handler.setLevel(logging.DEBUG) # Log all details to file
+            if not self.logger.hasHandlers():
+                self.logger.addHandler(handler)
             
-            time.sleep(0.1) # Small sleep to prevent busy-looping
+            # *** FIX: Stop logs from propagating to the root logger (debug.log) ***
+            self.logger.propagate = False
+            
+            self.logger.info("AutotermHeaterController (V2) is starting.")
+        except Exception as e:
+            # Fallback to main logger if file logging fails
+            logging.error(f"Failed to set up heater log file handler at {log_path}: {e}")
 
-    # Heater and ventilation controlling
-    def get_heater_timer(self):
-        return self.__heater_timer
-    def set_heater_timer(self, timer):
-        self.__heater_timer = time.time() + (timer * 60)
-    def shutdown(self):
-        self.__shutdown_request = True
-    def turn_on_ventilation(self, power, timer = None):
-        if timer:
-            self.__heater_timer = time.time() + (timer * 60)
-        payload = b'\xff\xff' + power.to_bytes(1, byteorder='big') + b'\x0f'
-        message = self.build(0x03, 0x23, payload=payload)
-        if message != 0:
-            self.__send_to_heater.append(message)
-            self.__send_to_heater.append(message)
-            # Message is sent twice as from the controller
-    def turn_on_heater(self, mode, setpoint = 0x0f, ventilation = 0x00, power = 0x00, timer = None):
-        if timer:
-            self.__heater_timer = time.time() + (timer * 60)
-        payload = b'\xff\xff' + mode.to_bytes(1, byteorder='big') + setpoint.to_bytes(1, byteorder='big') + ventilation.to_bytes(1, byteorder='big') + power.to_bytes(1, byteorder='big')
-        message = self.build(0x03, 0x01, payload=payload)
-        if message != 0:
-            self.__send_to_heater.append(message)
-            self.__send_to_heater.append(message)
-            # Message is sent twice as from the controller
-    def change_settings(self, mode, setpoint = 0x0f, ventilation = 0x00, power = 0x00, timer = None):
-        if timer:
-            self.__heater_timer = time.time() + (timer * 60)
-        payload = b'\xff\xff' + mode.to_bytes(1, byteorder='big') + setpoint.to_bytes(1, byteorder='big') + ventilation.to_bytes(1, byteorder='big') + power.to_bytes(1, byteorder='big')
-        message = self.build(0x03, 0x02, payload=payload)
-        if message != 0:
-            self.__send_to_heater.append(message)
-            self.__send_to_heater.append(message)
-            # Message is sent twice as from the controller
+        # --- Worker Thread ---
+        self.stop_event = threading.Event()
+        self.worker_thread = threading.Thread(target=self._heartbeat_worker, daemon=True)
 
-    # Heater info
-    def ask_for_heater_software_version(self):
-        message = self.build(0x03, 0x06)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def get_heater_software_version(self):
-        return self.__heater_software_version
-    def ask_for_heater_serial_number(self):
-        message = self.build(0x03, 0x04)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def get_heater_serial_number(self):
-        return self.__heater_serial_number
+    def start(self) -> bool:
+        """Finds, connects, and initializes the heater session."""
+        if not self._find_serial_port():
+            self.logger.error(f"No serial adapter found with ID containing '{self.serial_num}'.")
+            return False
+            
+        if not self.connect() or not self.initialize_session():
+            self.logger.error("Heater connection or initialization failed.")
+            return False
+        
+        self.logger.info("Heater initialized. Starting heartbeat worker thread.")
+        self.worker_thread.start()
+        return True
 
-    # Heater settings
-    def asks_for_settings(self):
-        message = self.build(0x03, 0x02)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def get_heater_mode(self):
-        return self.__heater_mode
-    def get_heater_setpoint(self):
-        return self.__heater_setpoint
-    def get_heater_ventilation(self):
-        return self.__heater_ventilation
-    def get_heater_power_level(self):
-        return self.__heater_power_level
+    def _find_serial_port(self):
+        """Uses the serial number to find the correct /dev/tty* device file."""
+        try:
+            link_path_pattern = f"/dev/serial/by-id/*{self.serial_num}*"
+            matching_links = glob.glob(link_path_pattern)
+            if matching_links:
+                self.port = os.path.realpath(matching_links[0])
+                self.logger.info(f"Found serial adapter by ID '{self.serial_num}' at '{self.port}'")
+                return True
+            else:
+                # Fallback for testing/other OS
+                ports = serial.tools.list_ports.comports()
+                for p in ports:
+                    if self.serial_num in (p.serial_number or ""):
+                        self.port = p.device
+                        self.logger.info(f"Found serial adapter by serial number at '{self.port}'")
+                        return True
+        except Exception as e:
+            self.logger.error(f"Error while searching for serial device by ID: {e}")
+        return False
 
-    # Heater status
-    def asks_for_status(self):
-        message = self.build(0x03, 0x0f)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def get_heater_status(self):
-        return (self.__heater_status1, self.__heater_status2)
-    def get_heater_status_text(self):
-        if self.__heater_status1[0] in status_text.keys():
-            return status_text[self.__heater_status1[0]]
+    def connect(self) -> bool:
+        if not self.port:
+            self.logger.error("Cannot connect: Serial port not found.")
+            return False
+        try:
+            self.ser = serial.Serial(
+                self.port, self.baudrate, bytesize=serial.EIGHTBITS,
+                parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1.0
+            )
+            self.logger.info(f"Successfully opened serial port {self.port}")
+            return True
+        except serial.SerialException as e:
+            self.logger.error(f"Error opening serial port {self.port}: {e}")
+            return False
+
+    def initialize_session(self) -> bool:
+        with self.comm_lock:
+            if not self.ser: return False
+            self.logger.info("Initializing communication session...")
+            self.logger.debug("Sending wake-up sequence (12x 0x1B)...")
+            for _ in range(12):
+                self.ser.write(b'\x1b')
+                time.sleep(0.05)
+            self.ser.reset_input_buffer()
+        
+        self.logger.info("Checking connection with 'Get Version' command...")
+        version_payload = self._send_command(0x06, log_prefix="Init")
+        if version_payload and len(version_payload) == 5:
+            version_str = ".".join(map(str, version_payload[0:4]))
+            self.logger.info(f"Initialization successful! Heater version: {version_str}")
+            self.is_initialized = True
+            return True
         else:
-            return 'unknown status'
-    def get_heater_errors(self):
-        return self.__heater_errors
-    def get_heater_temperature(self):
-        return self.__heater_temperature
-    def get_external_temperature(self):
-        return self.__external_temperature
-    def get_battery_voltage(self):
-        return self.__battery_voltage
-    def get_flame_temperature(self):
-        return self.__flame_temperature
+            self.logger.error("Initialization failed. Heater did not respond correctly.")
+            return False
 
-    # Controller temperature
-    def report_controller_temperature(self, temperature):
-        payload = temperature.to_bytes(1, byteorder='big')
-        message = self.build(0x03, 0x11, payload=payload)
-        if message != 0:
-            self.__send_to_heater.append(message)
-            self.__controller_temperature = temperature
-    def get_controller_temperature(self):
-        return self.__controller_temperature
+    def close(self):
+        if self.ser and self.ser.is_open:
+            self.ser.close()
+            self.logger.info("Serial port closed.")
 
-    # Diagnostic
-    def diagnostic_on(self):
-        payload = b'\x01'
-        message = self.build(0x03, 0x07, payload = payload)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def diagnostic_off(self):
-        payload = b'\x00'
-        message = self.build(0x03, 0x07, payload = payload)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def unblock(self):
-        message = self.build(0x03, 0x0d)
-        if message != 0:
-            self.__send_to_heater.append(message)
-    def get_d_status(self):
-        return (self.__d_status1, self.__d_status2)
-    def get_d_counter1(self):
-        return self.__d_counter1
-    def get_d_counter2(self):
-        return self.__d_counter2
-    def get_d_defined_rev(self):
-        return self.__d_defined_rev
-    def get_d_measured_rev(self):
-        return self.__d_measured_rev
-    def get_d_fuel_pump1(self):
-        return self.__d_fuel_pump1
-    def get_d_fuel_pump2(self):
-        return self.__d_fuel_pump2
-    def get_d_chamber_temperature(self):
-        return self.__d_chamber_temperature
-    def get_d_flame_temperature(self):
-        return self.__d_flame_temperature
-    def get_d_external_temperature(self):
-        return self.__d_external_temperature
-    def get_d_heater_temperature(self):
-        return self.__d_heater_temperature
-    def get_d_battery_voltage(self):
-        return self.__d_battery_voltage
+    def cleanup(self):
+        """Shuts down the worker thread and closes the serial connection."""
+        self.logger.info("Cleaning up heater connection...")
+        self.stop_event.set()
+        if self.worker_thread.is_alive():
+            self.worker_thread.join(timeout=2)
+        
+        if self.is_initialized:
+            self.turn_off() # Send final shutdown command
+            
+        self.close()
+        self.logger.info("Cleanup complete.")
+
+    def _calculate_crc(self, data: bytes) -> bytes:
+        crc = 0xFFFF
+        for byte in data:
+            crc ^= byte
+            for _ in range(8):
+                if crc & 0x0001: crc = (crc >> 1) ^ 0xA001
+                else: crc >>= 1
+        return crc.to_bytes(2, 'big')
+
+    def _build_message(self, msg_type: int, payload: bytes = b'') -> bytes:
+        header = bytearray([0xAA, 0x03, len(payload), 0x00, msg_type])
+        return (header + payload) + self._calculate_crc(header + payload)
+
+    def _send_command(self, msg_type: int, payload: bytes = b'', log_prefix: str = "CMD") -> Optional[bytes]:
+        with self.comm_lock:
+            if not self.ser or not self.ser.is_open:
+                self.logger.error(f"[{log_prefix}] Serial port not open.")
+                return None
+            
+            command = self._build_message(msg_type, payload)
+            self.logger.info(f"[{log_prefix}] SEND: {command.hex(' ').upper()}")
+            
+            try:
+                self.ser.reset_input_buffer()
+                self.ser.write(command)
+                time.sleep(0.3) # Wait for response
+                raw_response = self.ser.read_all()
+            except serial.SerialException as e:
+                self.logger.error(f"Serial communication error: {e}")
+                return None
+
+            if not raw_response:
+                self.logger.warning(f"[{log_prefix}] No response from heater.")
+                return None
+
+            start_index = raw_response.find(0xAA)
+            if start_index == -1:
+                self.logger.debug(f"No preamble (0xAA) in response: {raw_response.hex(' ')}")
+                return None
+            if start_index > 0:
+                self.logger.debug(f"Trimmed {start_index} garbage bytes from response.")
+            
+            trimmed_response = raw_response[start_index:]
+            if len(trimmed_response) < 7:
+                self.logger.debug(f"Response too short: {trimmed_response.hex(' ')}")
+                return None
+            
+            payload_length = trimmed_response[2]
+            expected_len = 5 + payload_length + 2
+            
+            if len(trimmed_response) != expected_len:
+                self.logger.warning(f"Response length mismatch. Got {len(trimmed_response)}, expected {expected_len}. Resp: {trimmed_response.hex(' ')}")
+                return None
+                
+            response_data = trimmed_response[:-2]
+            received_crc = trimmed_response[-2:]
+            calculated_crc = self._calculate_crc(response_data)
+            
+            if calculated_crc != received_crc:
+                self.logger.warning(f"[{log_prefix}] Checksum mismatch! Got {received_crc.hex()}, Exp {calculated_crc.hex()}")
+                return None
+            
+            # Return just the payload
+            return response_data[5:]
+
+    def _heartbeat_worker(self):
+        """Periodically polls status and reports cabin temperature."""
+        while not self.stop_event.is_set():
+            try:
+                temp_to_report = 20 # Default
+                with self.state_lock:
+                    mode = self.current_mode
+                    temp_to_report = self.cabin_temperature
+                
+                # Only report temperature if heater is in temperature mode
+                if mode == 'temp':
+                    self.report_controller_temperature(temp_to_report)
+                
+                # Always get status
+                status = self.get_status()
+                if status:
+                    with self.state_lock:
+                        self.last_status = status
+                    
+                    if status.get("error", "No Error") != 'No Error':
+                        self.logger.error(f"HEATER FAULT DETECTED: {status['error']}. Check system.")
+                else:
+                    self.logger.warning("Failed to get status update. Connection may be lost.")
+                    # Attempt to re-initialize session
+                    self.initialize_session()
+
+            except Exception as e:
+                self.logger.error(f"Error in heartbeat worker: {e}", exc_info=True)
+
+            # Wait for the next cycle
+            if self.stop_event.wait(HEARTBEAT_INTERVAL_SECONDS):
+                break
+    
+    def get_last_status(self) -> Dict[str, Any]:
+        """Returns the last known status from the worker thread."""
+        with self.state_lock:
+            return self.last_status.copy()
+
+    def update_controller_temperature(self, temp: int):
+        """Receives the real cabin temperature from the main app."""
+        with self.state_lock:
+            self.cabin_temperature = int(temp)
+        self.logger.debug(f"Cabin temperature updated to: {temp}°C")
+
+    # --- Public Commands ---
+
+    def turn_on_power_mode(self, level: int) -> bool:
+        self.logger.info(f"Sending command: POWER mode at level {level}...")
+        payload = bytes([0x01, 0x00, 0x04, 0x10, 0x00, level])
+        success = self._send_command(0x01, payload=payload) is not None
+        if success:
+            with self.state_lock:
+                self.current_mode = 'power'
+                self.current_setpoint = level
+        return success
+
+    def turn_on_temp_mode(self, setpoint: int) -> bool:
+        self.logger.info(f"Sending command: TEMPERATURE mode with setpoint {setpoint}°C...")
+        payload = bytes([0x01, 0x00, 0x02, setpoint, 0x00, 0x08])
+        success = self._send_command(0x01, payload=payload) is not None
+        if success:
+            with self.state_lock:
+                self.current_mode = 'temp'
+                self.current_setpoint = setpoint
+        return success
+
+    def turn_on_fan_only(self, level: int) -> bool:
+        self.logger.info(f"Sending command: FAN ONLY mode at level {level}...")
+        payload = bytes([0xFF, 0xFF, level, 0xFF])
+        success = self._send_command(0x23, payload=payload) is not None
+        if success:
+            with self.state_lock:
+                self.current_mode = 'fan'
+                self.current_setpoint = level
+        return success
+    
+    def turn_off(self) -> bool:
+        self.logger.info("Sending SHUTDOWN command...")
+        # *** FIX: Corrected typo from self.send_command to self._send_command ***
+        success = self._send_command(0x03) is not None
+        if success:
+            with self.state_lock:
+                self.current_mode = 'off'
+                self.current_setpoint = 0
+        return success
+
+    def report_controller_temperature(self, temp: int) -> bool:
+        self.logger.info(f"Reporting controller temp: {temp}°C")
+        # Temperature is a signed byte
+        payload = int(temp).to_bytes(1, 'big', signed=True)
+        return self._send_command(0x11, payload=payload) is not None
+
+    def get_status(self) -> Optional[Dict[str, Any]]:
+        # *** FIX: Using your provided, correct get_status method ***
+        payload = self._send_command(0x0F, log_prefix="Heartbeat")
+        if not payload or len(payload) < 19:
+            self.logger.warning(f"GET_STATUS: Invalid payload received. {payload.hex(' ') if payload else 'No payload'}")
+            return None
+        
+        try:
+            status_code = (payload[0], payload[1])
+            status_desc = status_text.get(status_code, f"Unknown {status_code}")
+            error_code = payload[2]
+            error_desc = error_text.get(error_code, f"Unknown Error {error_code}")
+            
+            # Your correct parsing function
+            def parse_signed(b): return b if b <= 127 else b - 256
+            
+            internal_temp = parse_signed(payload[3]) # This is the panel temp
+            external_temp_val = parse_signed(payload[4]) if payload[4] != 0x7F else None
+            external_temp_str = f"{external_temp_val}°C" if external_temp_val is not None else "N/A"
+            
+            voltage = payload[6] / 10.0
+            heater_temp = payload[8] - 15 # Your correct calculation
+            flame_temp = int.from_bytes(payload[16:18], 'big') # Added from my previous version
+            
+            fan_rpm_set = payload[11] * 60
+            fan_rpm_actual = payload[12] * 60
+            fuel_pump_freq = payload[14] / 100.0
+
+            log_summary = (
+                f"Parsed Status -> Mode: {status_desc} [{status_code[0]}.{status_code[1]}] | "
+                f"Error: {error_desc} | Voltage: {voltage:.1f}V | "
+                f"Temps (Heater/Panel/External): {heater_temp}°C/{internal_temp}°C/{external_temp_str} | "
+                f"Fan (Set/Actual): {fan_rpm_set}/{fan_rpm_actual} RPM | Pump: {fuel_pump_freq:.2f}Hz"
+            )
+            self.logger.info(log_summary)
+
+            # Modified return to include all values needed by the frontend wrapper
+            return {
+                "status_tuple": status_code,
+                "description": status_desc,
+                "error_code": error_code,
+                "error": error_desc,
+                "voltage": voltage,
+                "heater_temp": heater_temp,
+                "panel_temp": internal_temp,
+                "external_temp": external_temp_val,
+                "flame_temp": internal_temp,
+                "fan_rpm": fan_rpm_actual,
+                "fuel_pump_freq": fuel_pump_freq
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to parse status payload: {payload.hex(' ')} - Error: {e}", exc_info=True)
+            return None

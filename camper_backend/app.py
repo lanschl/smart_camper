@@ -152,33 +152,38 @@ def handle_floor_heating_change(data):
         print(f"Warning: No handler for floor heating device '{device_id}'")
 
 
-# --- LOAD HISTORY ON STARTUP --
 def sensor_reading_thread():
     """
-    Reads sensors, logs boiler temp to a file, maintains history, and pushes updates.
+    Reads sensors, logs boiler temp, checks timers, and pushes updates.
     """
     print("Starting sensor reading background thread.")
-    global heater_start_timer, heater_start_command
+    # *** REMOVED: Global timer variables ***
     while True:
+        # --- NEW: Check heater timers ---
+        # This will automatically trigger start/shutdown if needed
+        heater_controller.check_timers()
+        
+        # 1. Read local sensors
         sensor_data = sensor_reader.read_all_sensors()
 
         # 2. Read water level sensors
         water_levels = water_level_controller.read_levels()
-        sensor_data.update(water_levels) # Merge water levels into the main data packet
+        sensor_data.update(water_levels)
         bms_data = bms_reader.read_data()
         if bms_data:
             sensor_data.update(bms_data)
 
-        # 1. Feed the cabin temp to the heater controller
+        # 3. Feed the cabin temp to the heater controller
         inside_temp = sensor_data.get('insideTemp')
         if inside_temp is not None:
             heater_controller.update_cabin_temperature(inside_temp)
             
-        # 2. Get the latest full state from the heater
+        # 4. Get the latest full state from the heater (which now includes timer info)
         heater_state = heater_controller.get_state()
         if heater_state:
             sensor_data['dieselHeater'] = heater_state
         
+        # 5. Log boiler temperature
         if sensor_data:
             boiler_temp = sensor_data.get('boilerTemp')
             
@@ -191,64 +196,58 @@ def sensor_reading_thread():
                 except Exception as e:
                     print(f"Error writing to log file: {e}")
                 
-                # Update the in-memory history deque for sending to the UI
                 current_time_ms = current_time_sec * 1000
                 boiler_temp_history.append({'time': current_time_ms, 'temp': boiler_temp})
             
-            # Add the updated history to the data payload
             sensor_data['boilerTempHistory'] = list(boiler_temp_history)
 
-            # Emit the complete package
-            print(f"Pushing sensor update to UI (history has {len(boiler_temp_history)} points)")
+            # 6. Emit the complete package to the UI
+            # print(f"Pushing sensor update to UI (history has {len(boiler_temp_history)} points)")
             socketio.emit('sensor_update', sensor_data)
         
-        # Set the reading interval (e.g., every 60 seconds for production)
-        socketio.sleep(10) # Using 10s for testing, you can increase this later
+        socketio.sleep(10) # 10-second loop
 
 @socketio.on('diesel_heater_command')
 def handle_diesel_heater_command(data):
     """
     Handles all commands for the diesel heater.
-    e.g., {'command': 'turn_on', 'mode': 'power', 'value': 5}
+    e.g., {'command': 'start_in', 'value': 30, 'action': {'command': 'turn_on', 'mode': 'power', 'value': 5, 'run_timer_minutes': 120}}
     e.g., {'command': 'shutdown'}
-    e.g., {'command': 'change_setting', 'mode': 'temperature', 'value': 22}
+    e.g., {'command': 'turn_on', 'mode': 'temperature', 'value': 22, 'run_timer_minutes': 60}
     """
-    global heater_start_timer, heater_start_command
+    # *** REMOVED: Global timer variables ***
     command = data.get('command')
     logging.info(f"Received diesel_heater_command: {data}")
     
     if command == 'start_in':
-        start_delay_minutes = data.get('value')
-        if start_delay_minutes > 0:
-            heater_start_timer = time.time() + (start_delay_minutes * 60)
-            # Store the command that should be run when the timer expires
-            heater_start_command = data.get('action')
-            logging.info(f"Heater start timer set for {start_delay_minutes} minutes from now.")
-        else: # If delay is 0, start now
-             command_to_run = data.get('action')
-             heater_controller.turn_on_heating(
-                 command_to_run.get('mode'),
-                 command_to_run.get('value'),
-                 command_to_run.get('run_timer_minutes')
-             )
+        # *** UPDATED: Use controller method ***
+        heater_controller.set_start_timer(data.get('value'), data.get('action'))
+            
     elif command == 'cancel_start_timer':
-        heater_start_timer = None
-        heater_start_command = None
-        logging.info("Heater start timer cancelled.")
+        # *** UPDATED: Use controller method ***
+        heater_controller.cancel_start_timer()
+        
     elif command == 'shutdown':
         heater_controller.shutdown()
+        
     elif command == 'turn_on':
+        # This now correctly passes the run_timer_minutes
         heater_controller.turn_on_heating(
             data.get('mode'), 
             data.get('value'),
             data.get('run_timer_minutes')
         )
+        
     elif command == 'turn_on_ventilation':
+        # This now correctly passes the run_timer_minutes
         heater_controller.turn_on_ventilation(
             data.get('value'),
             data.get('run_timer_minutes')
         )
+        
     elif command == 'change_setting':
+        # Note: This relies on the 'change_settings' method to preserve
+        # the existing shutdown timer.
         heater_controller.change_settings(data.get('mode'), data.get('value'))
 
 
