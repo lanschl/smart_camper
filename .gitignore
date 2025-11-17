@@ -1,2 +1,4 @@
 camper_backend/debug.log
 camper_backend/heater.log
+camper_backend/boiler_temp_log.csv
+
