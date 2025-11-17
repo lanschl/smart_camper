@@ -1,5 +1,12 @@
+#!/usr/bin/python3
+# Filename: autoterm_heater.py
+#
+# This file is the new, robust heater control library adapted from your
+# working Windows script. It is designed to be imported and used as a class.
+#
 import logging
 import serial
+from logging.handlers import RotatingFileHandler
 import serial.tools.list_ports
 import time
 import threading
@@ -46,24 +53,32 @@ class AutotermHeaterController:
         self.cabin_temperature = 20 # Default, will be updated by heater.py
         
         # --- Logging ---
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger("AutotermHeater") 
         self.logger.setLevel(log_level)
-        try:
-            # Use the log path passed from the main app config
-            handler = logging.FileHandler(log_path)
-            formatter = logging.Formatter(fmt='%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
-            handler.setFormatter(formatter)
-            handler.setLevel(logging.DEBUG) # Log all details to file
-            if not self.logger.hasHandlers():
+        self.logger.propagate = False
+        # Check if handler exists to avoid adding it twice on re-init
+        if not self.logger.hasHandlers():
+            try:
+                # 1. Ensure directory exists
+                log_dir = os.path.dirname(log_path)
+                if log_dir and not os.path.exists(log_dir):
+                    os.makedirs(log_dir)
+
+                # 2. Use RotatingFileHandler (Max 5MB per file, keep 5 backups)
+                handler = RotatingFileHandler(
+                    log_path, 
+                    maxBytes=5*1024*1024, # 5 MB
+                    backupCount=5
+                )
+                
+                formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
+                handler.setFormatter(formatter)
+                handler.setLevel(logging.DEBUG) 
                 self.logger.addHandler(handler)
-            
-            # *** FIX: Stop logs from propagating to the root logger (debug.log) ***
-            self.logger.propagate = False
-            
-            self.logger.info("AutotermHeaterController (V2) is starting.")
-        except Exception as e:
-            # Fallback to main logger if file logging fails
-            logging.error(f"Failed to set up heater log file handler at {log_path}: {e}")
+                
+                self.logger.info(f"Heater logging initialized. Writing to: {log_path}")
+            except Exception as e:
+                print(f"CRITICAL ERROR: Failed to set up heater logger: {e}")
 
         # --- Worker Thread ---
         self.stop_event = threading.Event()
@@ -244,6 +259,8 @@ class AutotermHeaterController:
                     
                     if status.get("error", "No Error") != 'No Error':
                         self.logger.error(f"HEATER FAULT DETECTED: {status['error']}. Check system.")
+                        # In a real app, you might want to stop or flag this
+                        # self.stop_event.set() 
                 else:
                     self.logger.warning("Failed to get status update. Connection may be lost.")
                     # Attempt to re-initialize session
@@ -301,7 +318,6 @@ class AutotermHeaterController:
     
     def turn_off(self) -> bool:
         self.logger.info("Sending SHUTDOWN command...")
-        # *** FIX: Corrected typo from self.send_command to self._send_command ***
         success = self._send_command(0x03) is not None
         if success:
             with self.state_lock:
@@ -316,7 +332,6 @@ class AutotermHeaterController:
         return self._send_command(0x11, payload=payload) is not None
 
     def get_status(self) -> Optional[Dict[str, Any]]:
-        # *** FIX: Using your provided, correct get_status method ***
         payload = self._send_command(0x0F, log_prefix="Heartbeat")
         if not payload or len(payload) < 19:
             self.logger.warning(f"GET_STATUS: Invalid payload received. {payload.hex(' ') if payload else 'No payload'}")
@@ -328,16 +343,12 @@ class AutotermHeaterController:
             error_code = payload[2]
             error_desc = error_text.get(error_code, f"Unknown Error {error_code}")
             
-            # Your correct parsing function
             def parse_signed(b): return b if b <= 127 else b - 256
             
-            internal_temp = parse_signed(payload[3]) # This is the panel temp
-            external_temp_val = parse_signed(payload[4]) if payload[4] != 0x7F else None
-            external_temp_str = f"{external_temp_val}°C" if external_temp_val is not None else "N/A"
-            
+            flame_temp = parse_signed(payload[3]) # Panel temp
+            external_temp = parse_signed(payload[4]) if payload[4] != 0x7F else None # External sensor
             voltage = payload[6] / 10.0
-            heater_temp = payload[8] - 15 # Your correct calculation
-            flame_temp = int.from_bytes(payload[16:18], 'big') # Added from my previous version
+            heater_temp = parse_signed(payload[8]) - 15  # Main heater temp (old protocol had this as payload[8] - 15, new one seems direct)
             
             fan_rpm_set = payload[11] * 60
             fan_rpm_actual = payload[12] * 60
@@ -346,12 +357,11 @@ class AutotermHeaterController:
             log_summary = (
                 f"Parsed Status -> Mode: {status_desc} [{status_code[0]}.{status_code[1]}] | "
                 f"Error: {error_desc} | Voltage: {voltage:.1f}V | "
-                f"Temps (Heater/Panel/External): {heater_temp}°C/{internal_temp}°C/{external_temp_str} | "
+                f"Temps (Heater/Flame/External): {heater_temp}°C/{flame_temp}°C/{external_temp}°C | "
                 f"Fan (Set/Actual): {fan_rpm_set}/{fan_rpm_actual} RPM | Pump: {fuel_pump_freq:.2f}Hz"
             )
             self.logger.info(log_summary)
 
-            # Modified return to include all values needed by the frontend wrapper
             return {
                 "status_tuple": status_code,
                 "description": status_desc,
@@ -359,12 +369,13 @@ class AutotermHeaterController:
                 "error": error_desc,
                 "voltage": voltage,
                 "heater_temp": heater_temp,
-                "panel_temp": internal_temp,
-                "external_temp": external_temp_val,
-                "flame_temp": internal_temp,
+                "external_temp": external_temp,
+                "flame_temp": flame_temp,
                 "fan_rpm": fan_rpm_actual,
                 "fuel_pump_freq": fuel_pump_freq
             }
         except Exception as e:
             self.logger.error(f"Failed to parse status payload: {payload.hex(' ')} - Error: {e}", exc_info=True)
             return None
+        
+    
