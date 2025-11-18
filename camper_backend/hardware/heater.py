@@ -18,17 +18,6 @@ from typing import Dict, Any, Optional
 # Frontend Statuses:
 # 'off', 'starting', 'warming_up', 'running', 'shutting_down'
 
-def translate_status(status_desc: str) -> str:
-    """Translates detailed status text to simple frontend status."""
-    if 'Starting' in status_desc:
-        return 'starting'
-    if 'Shutting Down' in status_desc or 'Cooling Down' in status_desc:
-        return 'shutting_down'
-    if 'Heating' in status_desc or 'Fan-Only Mode' in status_desc or 'Ventilating' in status_desc:
-        return 'running'
-    # Default to 'off' for 'Standby' or unknown
-    return 'off'
-
 # Map our frontend mode strings to the new library's internal mode strings
 MODE_MAP = {
     'temperature': 'temp',
@@ -45,36 +34,27 @@ class HeaterController:
     translating its state for the frontend.
     """
     def __init__(self, serial_num: str, log_path: str):
-
         self.logger = logging.getLogger("AutotermHeater")
-
-        logging.info("Initializing Autoterm Heater Controller (V2)...")
-        self.is_mocked = False
-        self.heater: Optional[AutotermHeaterController] = None
-        try:
-            self.heater = AutotermHeaterController(
-                serial_num=serial_num,
-                log_path=log_path,
-                log_level=logging.INFO
-            )
-            if not self.heater.start():
-                raise RuntimeError("Failed to connect to or initialize heater.")
-            
-            logging.info("Heater V2 connection successfully initialized and worker started.")
-        except Exception as e:
-            logging.error(f"Failed to initialize heater V2 controller: {e}", exc_info=True)
-            self.logger.error(f"Failed to initialize heater V2 controller: {e}")
-            self.is_mocked = True
-            self.heater = None
+        self.logger.info("Initializing Autoterm Heater Controller Wrapper...")
+                
+        # Initialize the controller object
+        self.heater = AutotermHeaterController(
+            serial_num=serial_num,
+            log_path=log_path,
+            log_level=logging.INFO
+        )
+        
+        # Just start the thread. It will handle connection failures internally.
+        self.heater.start()
 
     def get_state(self) -> Dict[str, Any]:
         """
         Gathers all relevant data from the heater library and formats it for the frontend.
         """
-        if self.is_mocked or not self.heater:
+        if not self.heater or not self.heater.is_initialized:
             # Return a default mocked state if initialization failed
-            return { 'status': 'off', 'mode': 'temperature', 'setpoint': 20, 'powerLevel': 0, 
-                    'ventilationLevel': 0, 'timer': None, 'errors': 'No Error', 
+            return { 'status': 'off', 'mode': 'power', 'setpoint': 5, 'powerLevel': 0, 
+                    'ventilationLevel': 0, 'timer': None, 'errors': 'Searching for Heater...', 
                     'readings': {'heaterTemp': 0, 'externalTemp': 0, 'voltage': 0, 'flameTemp': 0, 'panelTemp': 0}}
         
         # Get the latest status packet from the heater's worker thread
@@ -87,7 +67,7 @@ class HeaterController:
 
         frontend_mode = MODE_MAP_REVERSE.get(lib_mode, 'temperature')
         status_desc = status_data.get('description', 'Standby')
-        frontend_status = translate_status(status_desc)
+        frontend_status = status_desc
         
         # The new library doesn't support timers, so 'timer' is always None.
         
@@ -116,21 +96,23 @@ class HeaterController:
     # --- NEW METHOD TO FEED CABIN TEMPERATURE ---
     def update_cabin_temperature(self, temperature: int):
         """Feeds the real cabin temperature to the heater library."""
-        if not self.is_mocked and self.heater:
-            # This calls the new library's method
+        if self.heater and self.heater.is_initialized:
             self.heater.update_controller_temperature(int(temperature))
 
     # --- COMMANDS (Now simplified to pass-through) ---
     def shutdown(self):
-        if not self.is_mocked and self.heater:
+        if self.heater and self.heater.is_initialized:
             self.heater.turn_off()
+
 
     def turn_on_heating(self, mode: str, value: int, run_timer_minutes: Optional[int]):
         """
         Starts heating or power mode.
         NOTE: run_timer_minutes is not supported by the new library and will be ignored.
         """
-        if self.is_mocked or not self.heater: return
+        if not self.heater or not self.heater.is_initialized: 
+            self.logger.warning("Cannot turn on: Heater not connected.")
+            return
         
         lib_mode = MODE_MAP.get(mode)
         
@@ -147,8 +129,10 @@ class HeaterController:
         Starts fan-only mode.
         NOTE: run_timer_minutes is not supported by the new library and will be ignored.
         """
-        if not self.is_mocked and self.heater:
-            self.heater.turn_on_fan_only(int(level))
+        if not self.heater or not self.heater.is_initialized: 
+            return
+        
+        self.heater.turn_on_fan_only(int(level))
         
         if run_timer_minutes:
             self.logger.warning("run_timer_minutes is not supported by the new heater library and was ignored.")
@@ -157,7 +141,8 @@ class HeaterController:
         """
         Changes the settings by re-sending the appropriate 'turn_on' command.
         """
-        if self.is_mocked or not self.heater: return
+        if not self.heater or not self.heater.is_initialized: 
+            return
         
         lib_mode = MODE_MAP.get(mode)
 
@@ -166,10 +151,9 @@ class HeaterController:
         elif lib_mode == 'power':
             self.heater.turn_on_power_mode(int(value))
         elif lib_mode == 'fan':
-            # This wasn't a case before, but good to handle
             self.heater.turn_on_fan_only(int(value))
 
     def cleanup(self):
         self.logger.info("Shutting down heater connection...")
-        if not self.is_mocked and self.heater:
+        if self.heater:
             self.heater.cleanup()

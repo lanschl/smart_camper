@@ -39,24 +39,16 @@ const initialVanState: VanState = {
   boiler: { id: 'boiler_heat', name: 'Boiler Heating Coil', isOn: false },
   floorHeating: { id: 'floor_heat', name: 'Heated Floors', level: 0 },
   dieselHeater: {
-    status: 'off',
+    status: 'Standby',
     mode: 'power',
-    setpoint: 0,
-    powerLevel: 0,
+    setpoint: 18,
+    powerLevel: 5,
     ventilationLevel: 0,
-    timer: null,
-    
-    // --- ADD THESE TWO LINES ---
-    startTimer: null,
-    runTimer: null,
 
-    readings: { 
-      heaterTemp: 0, 
-      externalTemp: 0, 
-      voltage: 0, 
-      flameTemp: 0, 
-      panelTemp: 0 
-    },
+    timerStartIn: null,
+    timerShutdownIn: null,
+
+    readings: { heaterTemp: 0, externalTemp: 0, voltage: 0, flameTemp: 0, panelTemp: 0 },
     errors: null,
   }
 };
@@ -83,7 +75,7 @@ const App: React.FC = () => {
         
         // If the update contains dieselHeater data, merge it separately
         if (dieselHeater) {
-          newState.dieselHeater = { ...newState.dieselHeater, ...dieselHeater };
+          newState.dieselHeater = { ...prevState.dieselHeater, ...dieselHeater }; // <-- FIX
         }
         return newState;
       });
@@ -111,16 +103,16 @@ const App: React.FC = () => {
     const prevHeater = prevState.dieselHeater;
     const newHeater = newState.dieselHeater;
 
-    if (prevHeater.status === 'off' && newHeater.status === 'starting') {
+    if (prevHeater.status === 'Standby' && newHeater.status === 'starting') {
         let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
         if (newHeater.mode === 'ventilation') {
             socket.emit('diesel_heater_command', { command: 'turn_on_ventilation', value: newHeater.ventilationLevel });
         } else {
             socket.emit('diesel_heater_command', { command: 'turn_on', mode: newHeater.mode, value });
         }
-    } else if (prevHeater.status !== 'off' && newHeater.status === 'shutting_down') {
+    } else if (prevHeater.status !== 'Standby' && newHeater.status === 'shutting_down') {
         socket.emit('diesel_heater_command', { command: 'shutdown' });
-    } else if (newHeater.status === 'running') {
+    } else if (!newHeater.status.includes('Starting') && !newHeater.status.includes('Shutting') && !newHeater.status.includes('Cooling') && newHeater.status !== 'Standby') {
         if (prevHeater.mode !== newHeater.mode || 
             (newHeater.mode === 'temperature' && prevHeater.setpoint !== newHeater.setpoint) ||
             (newHeater.mode === 'power' && prevHeater.powerLevel !== newHeater.powerLevel)) {

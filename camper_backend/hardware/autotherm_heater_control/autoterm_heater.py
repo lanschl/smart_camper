@@ -16,11 +16,12 @@ from typing import Dict, Any, Optional, Tuple
 
 # --- Configuration ---
 HEARTBEAT_INTERVAL_SECONDS = 4
+RETRY_INTERVAL_SECONDS = 15
 
 # --- Mappings (From new documentation) ---
 status_text = {
     (0, 1): 'Standby', (1, 0): 'Starting - Cooling Sensor', (1, 1): 'Starting - Ventilation',
-    (2, 1): 'Starting - Glow Plug', (2, 2): 'Starting - Ignition 1', (2, 3): 'Starting - Ignition 2',
+    (2, 0): 'Starting Preparation', (2, 1): 'Starting - Glow Plug', (2, 2): 'Starting - Ignition 1', (2, 3): 'Starting - Ignition 2',
     (2, 4): 'Starting - Heating Chamber', (3, 0): 'Heating', (3, 4): 'Cooling Down',
     (3, 5): 'Ventilating (Setpoint Reached)', (3, 35): 'Fan-Only Mode', (4, 0): 'Shutting Down'
 }
@@ -44,7 +45,8 @@ class AutotermHeaterController:
         self.comm_lock = threading.Lock()
         self.ser = None
         self.is_initialized = False
-        
+        self.connection_error_logged = False
+
         # --- Internal State ---
         self.state_lock = threading.Lock()
         self.last_status: Dict[str, Any] = {}
@@ -82,20 +84,13 @@ class AutotermHeaterController:
 
         # --- Worker Thread ---
         self.stop_event = threading.Event()
-        self.worker_thread = threading.Thread(target=self._heartbeat_worker, daemon=True)
+        self.worker_thread = threading.Thread(target=self._connection_manager_worker, daemon=True)
 
     def start(self) -> bool:
-        """Finds, connects, and initializes the heater session."""
-        if not self._find_serial_port():
-            self.logger.error(f"No serial adapter found with ID containing '{self.serial_num}'.")
-            return False
-            
-        if not self.connect() or not self.initialize_session():
-            self.logger.error("Heater connection or initialization failed.")
-            return False
-        
-        self.logger.info("Heater initialized. Starting heartbeat worker thread.")
-        self.worker_thread.start()
+        """Starts the background connection manager thread."""
+        if not self.worker_thread.is_alive():
+            self.logger.info("Starting Heater Connection Manager Thread...")
+            self.worker_thread.start()
         return True
 
     def _find_serial_port(self):
@@ -237,41 +232,64 @@ class AutotermHeaterController:
             
             # Return just the payload
             return response_data[5:]
+    
+    def _connect_and_initialize(self) -> bool:
+        """Attempts to find port, connect, and handshake."""
+        if not self._find_serial_port():
+            return False
+        
+        # Reuse your existing logic, but wrapped safely
+        if self.connect() and self.initialize_session():
+            self.logger.info(f"CONNECTED: Heater found on {self.port}")
+            return True
+        
+        self.close()
+        return False
 
-    def _heartbeat_worker(self):
-        """Periodically polls status and reports cabin temperature."""
+    def _connection_manager_worker(self):
+        """Main loop: Handles BOTH reconnection and heartbeat."""
         while not self.stop_event.is_set():
+            
+            # CASE 1: If not connected, try to connect
+            if not self.is_initialized:
+                if self._connect_and_initialize():
+                    self.is_initialized = True
+                    self.connection_error_logged = False
+                else:
+                    if not self.connection_error_logged:
+                        self.logger.warning(f"Heater not found. Retrying every {RETRY_INTERVAL_SECONDS}s...")
+                        self.connection_error_logged = True
+                    time.sleep(RETRY_INTERVAL_SECONDS)
+                    continue 
+
+            # CASE 2: Connected? Run Heartbeat
             try:
-                temp_to_report = 20 # Default
+                temp_to_report = 20
+                mode = 'off'
                 with self.state_lock:
                     mode = self.current_mode
                     temp_to_report = self.cabin_temperature
                 
-                # Only report temperature if heater is in temperature mode
                 if mode == 'temp':
                     self.report_controller_temperature(temp_to_report)
-                
-                # Always get status
+
                 status = self.get_status()
+                
                 if status:
                     with self.state_lock:
                         self.last_status = status
-                    
-                    if status.get("error", "No Error") != 'No Error':
-                        self.logger.error(f"HEATER FAULT DETECTED: {status['error']}. Check system.")
-                        # In a real app, you might want to stop or flag this
-                        # self.stop_event.set() 
                 else:
-                    self.logger.warning("Failed to get status update. Connection may be lost.")
-                    # Attempt to re-initialize session
-                    self.initialize_session()
-
+                    # If status fails, we lost connection
+                    self.logger.warning("Lost connection to heater. Resetting...")
+                    self.is_initialized = False
+                    self.close()
+            
             except Exception as e:
-                self.logger.error(f"Error in heartbeat worker: {e}", exc_info=True)
+                self.logger.error(f"Error in worker loop: {e}")
+                self.is_initialized = False
+                self.close()
 
-            # Wait for the next cycle
-            if self.stop_event.wait(HEARTBEAT_INTERVAL_SECONDS):
-                break
+            self.stop_event.wait(HEARTBEAT_INTERVAL_SECONDS)
     
     def get_last_status(self) -> Dict[str, Any]:
         """Returns the last known status from the worker thread."""
@@ -287,6 +305,8 @@ class AutotermHeaterController:
     # --- Public Commands ---
 
     def turn_on_power_mode(self, level: int) -> bool:
+        if not self.is_initialized: 
+            return False
         self.logger.info(f"Sending command: POWER mode at level {level}...")
         payload = bytes([0x01, 0x00, 0x04, 0x10, 0x00, level])
         success = self._send_command(0x01, payload=payload) is not None
@@ -297,6 +317,8 @@ class AutotermHeaterController:
         return success
 
     def turn_on_temp_mode(self, setpoint: int) -> bool:
+        if not self.is_initialized: 
+            return False
         self.logger.info(f"Sending command: TEMPERATURE mode with setpoint {setpoint}°C...")
         payload = bytes([0x01, 0x00, 0x02, setpoint, 0x00, 0x08])
         success = self._send_command(0x01, payload=payload) is not None
@@ -307,6 +329,8 @@ class AutotermHeaterController:
         return success
 
     def turn_on_fan_only(self, level: int) -> bool:
+        if not self.is_initialized: 
+            return False
         self.logger.info(f"Sending command: FAN ONLY mode at level {level}...")
         payload = bytes([0xFF, 0xFF, level, 0xFF])
         success = self._send_command(0x23, payload=payload) is not None
@@ -317,6 +341,8 @@ class AutotermHeaterController:
         return success
     
     def turn_off(self) -> bool:
+        if not self.is_initialized: 
+            return False
         self.logger.info("Sending SHUTDOWN command...")
         success = self._send_command(0x03) is not None
         if success:
@@ -336,19 +362,21 @@ class AutotermHeaterController:
         if not payload or len(payload) < 19:
             self.logger.warning(f"GET_STATUS: Invalid payload received. {payload.hex(' ') if payload else 'No payload'}")
             return None
+    
+        def parse_signed(b):
+            return b if b <= 127 else b - 256
         
         try:
             status_code = (payload[0], payload[1])
             status_desc = status_text.get(status_code, f"Unknown {status_code}")
             error_code = payload[2]
             error_desc = error_text.get(error_code, f"Unknown Error {error_code}")
-            
-            def parse_signed(b): return b if b <= 127 else b - 256
-            
-            flame_temp = parse_signed(payload[3]) # Panel temp
+
+
+            heater_temp = parse_signed(payload[3]) # Heater Temp
             external_temp = parse_signed(payload[4]) if payload[4] != 0x7F else None # External sensor
             voltage = payload[6] / 10.0
-            heater_temp = parse_signed(payload[8]) - 15  # Main heater temp (old protocol had this as payload[8] - 15, new one seems direct)
+            flame_temp = parse_signed(payload[8])   
             
             fan_rpm_set = payload[11] * 60
             fan_rpm_actual = payload[12] * 60

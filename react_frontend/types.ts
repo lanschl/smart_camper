@@ -27,7 +27,15 @@ export interface DieselHeaterState {
   // --- UPDATED FIELDS ---
   timerStartIn: number | null;     // REPLACES old 'timer'. In minutes, from backend.
   timerShutdownIn: number | null;  // NEW. In minutes, from backend.
-  errors: string | null;           // Was number, now string.
+  errors: string | null; 
+  
+  readings: {
+    heaterTemp: number;
+    externalTemp: number | null; // Can be null if not connected
+    voltage: number;
+    flameTemp: number;
+    panelTemp: number;
+  };
 
   // --- UI-ONLY STATE ---
   // These are for the sliders, in HOURS.
