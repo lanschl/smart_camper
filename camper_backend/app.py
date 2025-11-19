@@ -161,7 +161,7 @@ def sensor_reading_thread():
     while True:
         # --- NEW: Check heater timers ---
         # This will automatically trigger start/shutdown if needed
-        heater_controller.check_timers()
+        # heater_controller.check_timers()
         
         # 1. Read local sensors
         sensor_data = sensor_reader.read_all_sensors()
@@ -181,6 +181,8 @@ def sensor_reading_thread():
         # 4. Get the latest full state from the heater (which now includes timer info)
         heater_state = heater_controller.get_state()
         if heater_state:
+            if inside_temp:
+                heater_state['readings']['panelTemp'] = inside_temp
             sensor_data['dieselHeater'] = heater_state
         
         # 5. Log boiler temperature
@@ -219,15 +221,15 @@ def handle_diesel_heater_command(data):
     command = data.get('command')
     logging.info(f"Received diesel_heater_command: {data}")
     
-    if command == 'start_in':
+    # if command == 'start_in':
         # *** UPDATED: Use controller method ***
-        heater_controller.set_start_timer(data.get('value'), data.get('action'))
+        # heater_controller.set_start_timer(data.get('value'), data.get('action'))
             
-    elif command == 'cancel_start_timer':
+    # elif command == 'cancel_start_timer':
         # *** UPDATED: Use controller method ***
-        heater_controller.cancel_start_timer()
+        # heater_controller.cancel_start_timer()
         
-    elif command == 'shutdown':
+    if command == 'shutdown':
         heater_controller.shutdown()
         
     elif command == 'turn_on':

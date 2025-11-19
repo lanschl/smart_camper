@@ -27,10 +27,37 @@ status_text = {
 }
 
 error_text = {
-    0: 'No Error', 1: 'Overheating', 2: 'Under-voltage', 3: 'Glow Plug Failure',
-    4: 'Fuel Pump Failure', 5: 'Fan Motor Failure', 6: 'Flame Sensor Failure',
-    7: 'Over-voltage', 8: 'Ignition Failure (No Flame)', 9: 'Flameout during operation',
-    10: 'Control Unit Failure'
+    # --- Codes Updated According to PDF Page 1 (0-15) ---
+    0: 'No Error',
+    1: 'Overheating (Heat Exchanger)', 
+    2: 'Possible Overheating (Intake Temp Sensor / Control Panel > 55°C)', 
+    3: 'Under-voltage (Power Supply too low)', 
+    4: 'Over-voltage (Power Supply too high)', 
+    5: 'Faulty Temperature Sensor (Air 2D) or Flame Indicator',
+    6: 'Faulty Internal Circuit Board Temperature Sensor (Non-replaceable)', 
+    7: 'Overheating Sensor Not Measurable / Cable Defect',
+    8: 'Fan Motor Failure (Incorrect speed/Stuck)',
+    9: 'Faulty Glow Plug', 
+    10: 'Fan Motor Not Reaching Necessary Speed', 
+    11: 'Faulty Air Temperature Sensor (Air 8D)',
+    12: 'Over-voltage Shutdown (>16V for 12V, >30V for 24V)', 
+    13: 'Heater Start Failure (Two failed attempts)', 
+    14: 'Overheating (Exhaust / Hot Air Outlet Temp Sensor)', 
+    15: 'Battery Voltage Too Low (<10V for 12V, <20V for 24V)', 
+    16: 'Temperature Sensor Did Not Cool Down (Ventilation/Purge Time Exceeded)',
+    17: 'Faulty Fuel Pump (Short Circuit or Break in Wiring)',
+    20: 'Heater Start Failure / Communication Error (Control Panel to Circuit Board - Green Wire)',
+    27: 'Fan Motor Does Not Turn (Bearing/Rotor/Foreign Object Issue)',
+    28: 'Fan Motor Turns, Speed Not Regulated (Defective Control/Main Board)',
+    29: 'Ignition Flame Disturbance During Heater Operation (Flameout, Fuel/Air supply issue)',
+    30: 'Heater Start Failure / Communication Error (Control Panel to Circuit Board - White Wire)',
+    31: 'Overheating at Hot Air Outlet Temperature Sensor (Air 8D model)',
+    32: 'Malfunction of Air Intake Temperature Sensor (Air 8D model)',
+    33: 'Heater Control is Blocked (Occurs after 3 consecutive Overheating Errors)',
+    34: 'Incorrect Component Mounting (Sensor installed in the wrong location)',
+    35: 'Flame Malfunction (Due to Power Supply Voltage Drop)',
+    36: 'Flame Indicator Temperature Above Normal',
+    78: 'Flame Malfunction During Operation (Air bubbles in fuel line, pump error, or sensor fault)',
 }
 
 class AutotermHeaterController:
@@ -374,7 +401,7 @@ class AutotermHeaterController:
 
 
             heater_temp = parse_signed(payload[3]) # Heater Temp
-            external_temp = parse_signed(payload[4]) if payload[4] != 0x7F else None # External sensor
+            # external_temp = parse_signed(payload[4]) if payload[4] != 0x7F else None # External sensor
             voltage = payload[6] / 10.0
             flame_temp = parse_signed(payload[8])   
             
@@ -385,7 +412,7 @@ class AutotermHeaterController:
             log_summary = (
                 f"Parsed Status -> Mode: {status_desc} [{status_code[0]}.{status_code[1]}] | "
                 f"Error: {error_desc} | Voltage: {voltage:.1f}V | "
-                f"Temps (Heater/Flame/External): {heater_temp}°C/{flame_temp}°C/{external_temp}°C | "
+                f"Temps (Heater/Flame): {heater_temp}°C/{flame_temp}°C | "
                 f"Fan (Set/Actual): {fan_rpm_set}/{fan_rpm_actual} RPM | Pump: {fuel_pump_freq:.2f}Hz"
             )
             self.logger.info(log_summary)
@@ -397,7 +424,6 @@ class AutotermHeaterController:
                 "error": error_desc,
                 "voltage": voltage,
                 "heater_temp": heater_temp,
-                "external_temp": external_temp,
                 "flame_temp": flame_temp,
                 "fan_rpm": fan_rpm_actual,
                 "fuel_pump_freq": fuel_pump_freq

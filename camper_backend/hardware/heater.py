@@ -1,9 +1,14 @@
 # hardware/heater.py
 import time
 import logging
-# Import the new, robust heater controller
-from .autotherm_heater_control.autoterm_heater import AutotermHeaterController
 from typing import Dict, Any, Optional
+
+USE_MOCK_HEATER = True
+
+if USE_MOCK_HEATER:
+    from .autotherm_heater_control.mock_heater import MockAutotermHeaterController as AutotermHeaterController
+else:
+    from .autotherm_heater_control.autoterm_heater import AutotermHeaterController
 
 # --- Status Translation ---
 # This map translates the new library's detailed status descriptions
@@ -26,6 +31,8 @@ MODE_MAP = {
 }
 # Map the library's internal mode strings back to frontend
 MODE_MAP_REVERSE = {v: k for k, v in MODE_MAP.items()}
+
+
 
 
 class HeaterController:
@@ -55,7 +62,7 @@ class HeaterController:
             # Return a default mocked state if initialization failed
             return { 'status': 'off', 'mode': 'power', 'setpoint': 5, 'powerLevel': 0, 
                     'ventilationLevel': 0, 'timer': None, 'errors': 'Searching for Heater...', 
-                    'readings': {'heaterTemp': 0, 'externalTemp': 0, 'voltage': 0, 'flameTemp': 0, 'panelTemp': 0}}
+                    'readings': {'heaterTemp': 0, 'externalTemp': 0, 'voltage': 0, 'flameTemp': 0}}
         
         # Get the latest status packet from the heater's worker thread
         status_data = self.heater.get_last_status()
@@ -86,10 +93,9 @@ class HeaterController:
             'errors': status_data.get('error', 'No Error'),
             'readings': {
                 'heaterTemp': status_data.get('heater_temp', 0),
-                'externalTemp': status_data.get('external_temp'),
                 'voltage': status_data.get('voltage', 0),
-                'flameTemp': status_data.get('flame_temp', 0),
-                'panelTemp': status_data.get('panel_temp', 0)
+                'flameTemp': status_data.get('flame_temp', 0), 
+                'panelTemp': 19.9   #Placeholder
             }
         }
 

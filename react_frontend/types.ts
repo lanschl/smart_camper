@@ -31,7 +31,7 @@ export interface DieselHeaterState {
   
   readings: {
     heaterTemp: number;
-    externalTemp: number | null; // Can be null if not connected
+    // externalTemp: number | null; // Can be null if not connected
     voltage: number;
     flameTemp: number;
     panelTemp: number;

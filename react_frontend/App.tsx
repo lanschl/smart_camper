@@ -48,7 +48,7 @@ const initialVanState: VanState = {
     timerStartIn: null,
     timerShutdownIn: null,
 
-    readings: { heaterTemp: 0, externalTemp: 0, voltage: 0, flameTemp: 0, panelTemp: 0 },
+    readings: { heaterTemp: 0, voltage: 0, flameTemp: 0, panelTemp: 0 },
     errors: null,
   }
 };

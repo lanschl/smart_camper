@@ -1,0 +1,449 @@
+18.11.2025 21:07:08 INFO: Heater logging initialized. Writing to: /home/lukas/smart_camper/camper_backend/heater.log
+18.11.2025 21:07:08 INFO: Starting Heater Connection Manager Thread...
+18.11.2025 21:07:08 INFO: Found serial adapter by ID 'FTDI_FT232R_USB_UART_ABSCHPJ4' at '/dev/ttyUSB0'
+18.11.2025 21:07:08 INFO: Successfully opened serial port /dev/ttyUSB0
+18.11.2025 21:07:08 INFO: Initializing communication session...
+18.11.2025 21:07:09 INFO: Checking connection with 'Get Version' command...
+18.11.2025 21:07:09 INFO: [Init] SEND: AA 03 00 00 06 5E BC
+18.11.2025 21:07:09 INFO: Initialization successful! Heater version: 2.2.7.3
+18.11.2025 21:07:09 INFO: CONNECTED: Heater found on /dev/ttyUSB0
+18.11.2025 21:07:09 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:07:09 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:07:13 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:07:14 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:07:18 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:07:18 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:07:22 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:07:22 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:07:26 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:07:27 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:07:31 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:07:31 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:04 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:04 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:08 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:08 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:12 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:13 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:17 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:17 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:21 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:21 INFO: Parsed Status -> Mode: Standby [0.1] | Error: Unknown Error 30 | Voltage: 1.8V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:25 INFO: Sending command: POWER mode at level 5...
+18.11.2025 21:14:25 INFO: [CMD] SEND: AA 03 06 00 01 01 00 04 10 00 05 76 2F
+18.11.2025 21:14:26 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:26 WARNING: [Heartbeat] No response from heater.
+18.11.2025 21:14:26 WARNING: GET_STATUS: Invalid payload received. No payload
+18.11.2025 21:14:26 WARNING: Lost connection to heater. Resetting...
+18.11.2025 21:14:26 INFO: Serial port closed.
+18.11.2025 21:14:30 INFO: Found serial adapter by ID 'FTDI_FT232R_USB_UART_ABSCHPJ4' at '/dev/ttyUSB0'
+18.11.2025 21:14:30 INFO: Successfully opened serial port /dev/ttyUSB0
+18.11.2025 21:14:30 INFO: Initializing communication session...
+18.11.2025 21:14:31 INFO: Checking connection with 'Get Version' command...
+18.11.2025 21:14:31 INFO: [Init] SEND: AA 03 00 00 06 5E BC
+18.11.2025 21:14:31 INFO: Initialization successful! Heater version: 2.2.7.3
+18.11.2025 21:14:31 INFO: CONNECTED: Heater found on /dev/ttyUSB0
+18.11.2025 21:14:31 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:31 INFO: Parsed Status -> Mode: Starting - Cooling Sensor [1.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 16°C/14°C/None°C | Fan (Set/Actual): 1680/1080 RPM | Pump: 0.00Hz
+18.11.2025 21:14:35 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:35 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 1.9V | Temps (Heater/Flame/External): 15°C/13°C/None°C | Fan (Set/Actual): 600/0 RPM | Pump: 0.00Hz
+18.11.2025 21:14:39 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:40 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): 14°C/12°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:14:44 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:44 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 1.3V | Temps (Heater/Flame/External): 14°C/12°C/None°C | Fan (Set/Actual): 600/660 RPM | Pump: 0.00Hz
+18.11.2025 21:14:48 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:48 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 1.4V | Temps (Heater/Flame/External): 14°C/12°C/None°C | Fan (Set/Actual): 600/660 RPM | Pump: 0.00Hz
+18.11.2025 21:14:52 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:53 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): 14°C/12°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:14:57 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:14:57 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): 13°C/11°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:15:01 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:01 INFO: Parsed Status -> Mode: Starting Preparation [2.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 13°C/11°C/None°C | Fan (Set/Actual): 600/660 RPM | Pump: 0.00Hz
+18.11.2025 21:15:05 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:06 INFO: Parsed Status -> Mode: Starting - Glow Plug [2.1] | Error: No Error | Voltage: 1.9V | Temps (Heater/Flame/External): 13°C/11°C/None°C | Fan (Set/Actual): 600/540 RPM | Pump: 0.00Hz
+18.11.2025 21:15:10 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:10 INFO: Parsed Status -> Mode: Starting - Glow Plug [2.1] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 13°C/11°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:15:14 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:14 INFO: Parsed Status -> Mode: Starting - Glow Plug [2.1] | Error: No Error | Voltage: 1.2V | Temps (Heater/Flame/External): 12°C/10°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:15:18 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:18 INFO: Parsed Status -> Mode: Starting - Glow Plug [2.1] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 12°C/10°C/None°C | Fan (Set/Actual): 600/540 RPM | Pump: 0.00Hz
+18.11.2025 21:15:22 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:23 INFO: Parsed Status -> Mode: Starting - Glow Plug [2.1] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): 12°C/10°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:15:27 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:27 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 12°C/10°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:15:31 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:31 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): 12°C/10°C/None°C | Fan (Set/Actual): 600/600 RPM | Pump: 0.00Hz
+18.11.2025 21:15:35 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:36 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.8V | Temps (Heater/Flame/External): 11°C/9°C/None°C | Fan (Set/Actual): 660/720 RPM | Pump: 0.00Hz
+18.11.2025 21:15:40 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:40 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.6V | Temps (Heater/Flame/External): 11°C/9°C/None°C | Fan (Set/Actual): 780/720 RPM | Pump: 0.00Hz
+18.11.2025 21:15:44 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:44 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.9V | Temps (Heater/Flame/External): 11°C/9°C/None°C | Fan (Set/Actual): 900/960 RPM | Pump: 0.80Hz
+18.11.2025 21:15:48 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:49 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): 11°C/9°C/None°C | Fan (Set/Actual): 1020/1080 RPM | Pump: 0.60Hz
+18.11.2025 21:15:53 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:53 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): 10°C/8°C/None°C | Fan (Set/Actual): 1200/1260 RPM | Pump: 0.35Hz
+18.11.2025 21:15:57 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:15:57 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): 10°C/8°C/None°C | Fan (Set/Actual): 1440/1440 RPM | Pump: 0.39Hz
+18.11.2025 21:16:01 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:01 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 10°C/8°C/None°C | Fan (Set/Actual): 1680/1740 RPM | Pump: 0.51Hz
+18.11.2025 21:16:05 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:06 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.2V | Temps (Heater/Flame/External): 10°C/8°C/None°C | Fan (Set/Actual): 2040/1980 RPM | Pump: 0.66Hz
+18.11.2025 21:16:10 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:10 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 10°C/8°C/None°C | Fan (Set/Actual): 2340/2340 RPM | Pump: 0.78Hz
+18.11.2025 21:16:14 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:14 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 10°C/7°C/None°C | Fan (Set/Actual): 2580/2520 RPM | Pump: 0.90Hz
+18.11.2025 21:16:18 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:19 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 11°C/7°C/None°C | Fan (Set/Actual): 2880/2880 RPM | Pump: 1.02Hz
+18.11.2025 21:16:23 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:23 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.8V | Temps (Heater/Flame/External): 13°C/6°C/None°C | Fan (Set/Actual): 3240/3180 RPM | Pump: 1.17Hz
+18.11.2025 21:16:27 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:27 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.2V | Temps (Heater/Flame/External): 15°C/6°C/None°C | Fan (Set/Actual): 3300/3360 RPM | Pump: 1.20Hz
+18.11.2025 21:16:31 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:32 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.3V | Temps (Heater/Flame/External): 18°C/6°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:16:36 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:36 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.4V | Temps (Heater/Flame/External): 22°C/6°C/None°C | Fan (Set/Actual): 3300/3360 RPM | Pump: 1.20Hz
+18.11.2025 21:16:40 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:40 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): 24°C/5°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:16:44 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:44 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.7V | Temps (Heater/Flame/External): 28°C/5°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:16:48 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:49 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.4V | Temps (Heater/Flame/External): 32°C/5°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:16:53 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:53 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 36°C/5°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:16:57 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:16:57 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.4V | Temps (Heater/Flame/External): 40°C/5°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:17:01 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:02 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): 44°C/5°C/None°C | Fan (Set/Actual): 3300/3240 RPM | Pump: 1.20Hz
+18.11.2025 21:17:06 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:06 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 1.0V | Temps (Heater/Flame/External): 49°C/5°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:17:10 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:10 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): 52°C/5°C/None°C | Fan (Set/Actual): 3300/3240 RPM | Pump: 1.20Hz
+18.11.2025 21:17:14 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:15 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.7V | Temps (Heater/Flame/External): 55°C/4°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:17:19 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:19 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.8V | Temps (Heater/Flame/External): 59°C/4°C/None°C | Fan (Set/Actual): 3300/3360 RPM | Pump: 1.20Hz
+18.11.2025 21:17:23 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:23 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.2V | Temps (Heater/Flame/External): 63°C/4°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:17:27 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:27 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.2V | Temps (Heater/Flame/External): 66°C/4°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:17:31 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:32 INFO: Parsed Status -> Mode: Starting - Ignition 1 [2.2] | Error: No Error | Voltage: 0.1V | Temps (Heater/Flame/External): 69°C/4°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.20Hz
+18.11.2025 21:17:36 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:36 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 0.7V | Temps (Heater/Flame/External): 73°C/4°C/None°C | Fan (Set/Actual): 3540/3480 RPM | Pump: 1.26Hz
+18.11.2025 21:17:40 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:40 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.1V | Temps (Heater/Flame/External): 76°C/4°C/None°C | Fan (Set/Actual): 3960/3840 RPM | Pump: 1.38Hz
+18.11.2025 21:17:44 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:45 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.3V | Temps (Heater/Flame/External): 79°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:17:49 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:49 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): 81°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:17:53 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:53 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 84°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:17:57 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:17:58 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 86°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:02 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:02 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 88°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:06 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:06 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 91°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:10 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:10 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 93°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:14 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:15 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 96°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:19 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:19 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 98°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:23 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:23 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 100°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:27 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:28 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 102°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:32 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:32 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 104°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:36 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:36 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 107°C/4°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:40 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:41 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 110°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:45 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:45 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): 110°C/4°C/None°C | Fan (Set/Actual): 4200/4140 RPM | Pump: 1.50Hz
+18.11.2025 21:18:49 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:49 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -142°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:18:53 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:53 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): -141°C/5°C/None°C | Fan (Set/Actual): 4200/4260 RPM | Pump: 1.50Hz
+18.11.2025 21:18:57 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:18:58 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -139°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:02 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:02 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -137°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:06 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:06 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -136°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:10 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:11 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -134°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:15 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:15 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -133°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:19 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:19 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -131°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:23 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:24 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.9V | Temps (Heater/Flame/External): -130°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:28 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:28 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -128°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:32 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:32 INFO: Parsed Status -> Mode: Starting - Heating Chamber [2.4] | Error: No Error | Voltage: 1.3V | Temps (Heater/Flame/External): -127°C/5°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 1.50Hz
+18.11.2025 21:19:36 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:36 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): -126°C/5°C/None°C | Fan (Set/Actual): 4140/4200 RPM | Pump: 1.48Hz
+18.11.2025 21:19:40 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:41 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): -125°C/5°C/None°C | Fan (Set/Actual): 4140/4200 RPM | Pump: 1.48Hz
+18.11.2025 21:19:45 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:45 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.4V | Temps (Heater/Flame/External): -123°C/5°C/None°C | Fan (Set/Actual): 4140/4140 RPM | Pump: 1.46Hz
+18.11.2025 21:19:49 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:49 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): -122°C/5°C/None°C | Fan (Set/Actual): 4080/4020 RPM | Pump: 1.45Hz
+18.11.2025 21:19:53 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:54 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): -121°C/5°C/None°C | Fan (Set/Actual): 4080/4080 RPM | Pump: 1.45Hz
+18.11.2025 21:19:58 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:19:58 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): -120°C/5°C/None°C | Fan (Set/Actual): 4020/4020 RPM | Pump: 1.43Hz
+18.11.2025 21:20:02 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:02 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): -119°C/5°C/None°C | Fan (Set/Actual): 4020/3960 RPM | Pump: 1.41Hz
+18.11.2025 21:20:06 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:07 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -118°C/5°C/None°C | Fan (Set/Actual): 3960/3960 RPM | Pump: 1.39Hz
+18.11.2025 21:20:11 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:11 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -117°C/5°C/None°C | Fan (Set/Actual): 3960/3960 RPM | Pump: 1.39Hz
+18.11.2025 21:20:15 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:15 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -116°C/5°C/None°C | Fan (Set/Actual): 3960/3960 RPM | Pump: 1.37Hz
+18.11.2025 21:20:17 INFO: Sending command: POWER mode at level 2...
+18.11.2025 21:20:17 INFO: [CMD] SEND: AA 03 06 00 01 01 00 04 10 00 02 B4 6E
+18.11.2025 21:20:18 INFO: Sending command: POWER mode at level 1...
+18.11.2025 21:20:18 INFO: Sending command: POWER mode at level 0...
+18.11.2025 21:20:18 INFO: [CMD] SEND: AA 03 06 00 01 01 00 04 10 00 01 B5 2E
+18.11.2025 21:20:18 INFO: [CMD] SEND: AA 03 06 00 01 01 00 04 10 00 00 75 EF
+18.11.2025 21:20:19 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:19 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -115°C/5°C/None°C | Fan (Set/Actual): 3900/3840 RPM | Pump: 1.36Hz
+18.11.2025 21:20:23 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:24 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -114°C/5°C/None°C | Fan (Set/Actual): 3900/3900 RPM | Pump: 1.36Hz
+18.11.2025 21:20:28 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:28 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -114°C/5°C/None°C | Fan (Set/Actual): 3840/3780 RPM | Pump: 1.34Hz
+18.11.2025 21:20:32 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:32 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -113°C/5°C/None°C | Fan (Set/Actual): 3840/3840 RPM | Pump: 1.32Hz
+18.11.2025 21:20:36 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:37 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -112°C/5°C/None°C | Fan (Set/Actual): 3780/3840 RPM | Pump: 1.30Hz
+18.11.2025 21:20:41 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:41 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): -112°C/5°C/None°C | Fan (Set/Actual): 3780/3720 RPM | Pump: 1.30Hz
+18.11.2025 21:20:45 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:45 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -111°C/5°C/None°C | Fan (Set/Actual): 3720/3720 RPM | Pump: 1.28Hz
+18.11.2025 21:20:49 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:50 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -111°C/5°C/None°C | Fan (Set/Actual): 3720/3720 RPM | Pump: 1.27Hz
+18.11.2025 21:20:54 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:54 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): -109°C/6°C/None°C | Fan (Set/Actual): 3720/3660 RPM | Pump: 1.27Hz
+18.11.2025 21:20:58 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:20:58 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -109°C/6°C/None°C | Fan (Set/Actual): 3660/3660 RPM | Pump: 1.25Hz
+18.11.2025 21:21:02 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:03 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.5V | Temps (Heater/Flame/External): -108°C/6°C/None°C | Fan (Set/Actual): 3600/3600 RPM | Pump: 1.23Hz
+18.11.2025 21:21:07 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:07 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -108°C/6°C/None°C | Fan (Set/Actual): 3600/3600 RPM | Pump: 1.21Hz
+18.11.2025 21:21:11 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:11 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -108°C/6°C/None°C | Fan (Set/Actual): 3600/3600 RPM | Pump: 1.21Hz
+18.11.2025 21:21:15 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:15 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -108°C/6°C/None°C | Fan (Set/Actual): 3540/3600 RPM | Pump: 1.19Hz
+18.11.2025 21:21:19 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:20 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -107°C/6°C/None°C | Fan (Set/Actual): 3480/3480 RPM | Pump: 1.18Hz
+18.11.2025 21:21:24 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:24 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -107°C/6°C/None°C | Fan (Set/Actual): 3480/3480 RPM | Pump: 1.18Hz
+18.11.2025 21:21:28 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:28 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -107°C/6°C/None°C | Fan (Set/Actual): 3480/3480 RPM | Pump: 1.16Hz
+18.11.2025 21:21:32 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:33 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3420/3360 RPM | Pump: 1.14Hz
+18.11.2025 21:21:37 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:37 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3420/3420 RPM | Pump: 1.12Hz
+18.11.2025 21:21:41 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:41 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3420/3420 RPM | Pump: 1.12Hz
+18.11.2025 21:21:45 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:46 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3360/3360 RPM | Pump: 1.11Hz
+18.11.2025 21:21:50 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:50 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.09Hz
+18.11.2025 21:21:54 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:54 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.09Hz
+18.11.2025 21:21:58 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:21:58 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3300/3300 RPM | Pump: 1.07Hz
+18.11.2025 21:22:02 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:03 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -105°C/6°C/None°C | Fan (Set/Actual): 3240/3180 RPM | Pump: 1.05Hz
+18.11.2025 21:22:07 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:07 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -105°C/6°C/None°C | Fan (Set/Actual): 3180/3240 RPM | Pump: 1.03Hz
+18.11.2025 21:22:11 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:11 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -105°C/6°C/None°C | Fan (Set/Actual): 3180/3180 RPM | Pump: 1.03Hz
+18.11.2025 21:22:15 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:16 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -105°C/6°C/None°C | Fan (Set/Actual): 3180/3180 RPM | Pump: 1.02Hz
+18.11.2025 21:22:20 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:20 INFO: Parsed Status -> Mode: Heating [3.0] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3120/3120 RPM | Pump: 1.00Hz
+18.11.2025 21:22:22 INFO: Switching mode from 'power' to 'temp'. Issuing shutdown first.
+18.11.2025 21:22:22 INFO: Sending SHUTDOWN command...
+18.11.2025 21:22:22 INFO: [CMD] SEND: AA 03 00 00 03 5D 7C
+18.11.2025 21:22:23 INFO: Switching mode from 'off' to 'temp'. Issuing shutdown first.
+18.11.2025 21:22:23 INFO: Sending SHUTDOWN command...
+18.11.2025 21:22:23 INFO: [CMD] SEND: AA 03 00 00 03 5D 7C
+18.11.2025 21:22:24 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:24 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -105°C/6°C/None°C | Fan (Set/Actual): 3240/3240 RPM | Pump: 0.00Hz
+18.11.2025 21:22:25 INFO: Sending command: TEMPERATURE mode with setpoint 18°C...
+18.11.2025 21:22:25 INFO: [CMD] SEND: AA 03 06 00 01 01 00 02 12 00 08 FB 4F
+18.11.2025 21:22:26 INFO: Sending command: TEMPERATURE mode with setpoint 24°C...
+18.11.2025 21:22:26 INFO: [CMD] SEND: AA 03 06 00 01 01 00 02 18 00 08 F9 6F
+18.11.2025 21:22:28 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:28 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:29 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:29 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -106°C/6°C/None°C | Fan (Set/Actual): 3540/3480 RPM | Pump: 0.00Hz
+18.11.2025 21:22:33 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:33 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:33 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:33 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): -107°C/6°C/None°C | Fan (Set/Actual): 3780/3720 RPM | Pump: 0.00Hz
+18.11.2025 21:22:37 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:37 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:38 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:38 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.1V | Temps (Heater/Flame/External): -110°C/6°C/None°C | Fan (Set/Actual): 4080/4080 RPM | Pump: 0.00Hz
+18.11.2025 21:22:42 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:42 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:42 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:43 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): -113°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:22:47 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:47 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:47 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:47 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): -116°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:22:51 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:51 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:52 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:52 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.3V | Temps (Heater/Flame/External): -121°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:22:56 INFO: Reporting controller temp: 20°C
+18.11.2025 21:22:56 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:22:56 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:22:56 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): -124°C/6°C/None°C | Fan (Set/Actual): 4200/4260 RPM | Pump: 0.00Hz
+18.11.2025 21:23:00 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:00 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:01 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:01 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 0.8V | Temps (Heater/Flame/External): -128°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:05 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:05 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:05 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:06 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): -132°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:10 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:10 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:10 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:10 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 0.7V | Temps (Heater/Flame/External): -136°C/6°C/None°C | Fan (Set/Actual): 4200/4260 RPM | Pump: 0.00Hz
+18.11.2025 21:23:14 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:14 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:15 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:15 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 0.9V | Temps (Heater/Flame/External): -140°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:19 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:19 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:19 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:19 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.4V | Temps (Heater/Flame/External): 112°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:23 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:23 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:24 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:24 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.6V | Temps (Heater/Flame/External): 107°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:28 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:28 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:28 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:29 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 104°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:33 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:33 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:33 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:33 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 100°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:37 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:37 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:38 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:38 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 97°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:42 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:42 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:42 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:42 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 93°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:46 INFO: Reporting controller temp: 20°C
+18.11.2025 21:23:46 INFO: [CMD] SEND: AA 03 01 00 11 14 B2 51
+18.11.2025 21:23:47 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:47 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 89°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:49 INFO: Switching mode from 'temp' to 'power'. Issuing shutdown first.
+18.11.2025 21:23:49 INFO: Sending SHUTDOWN command...
+18.11.2025 21:23:49 INFO: [CMD] SEND: AA 03 00 00 03 5D 7C
+18.11.2025 21:23:50 INFO: Switching mode from 'off' to 'power'. Issuing shutdown first.
+18.11.2025 21:23:50 INFO: Sending SHUTDOWN command...
+18.11.2025 21:23:50 INFO: [CMD] SEND: AA 03 00 00 03 5D 7C
+18.11.2025 21:23:51 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:51 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 86°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:23:51 INFO: Sending command: POWER mode at level 0...
+18.11.2025 21:23:51 INFO: [CMD] SEND: AA 03 06 00 01 01 00 04 10 00 00 75 EF
+18.11.2025 21:23:53 INFO: Sending command: POWER mode at level 9...
+18.11.2025 21:23:53 INFO: [CMD] SEND: AA 03 06 00 01 01 00 04 10 00 09 73 2F
+18.11.2025 21:23:55 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:23:56 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 83°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:00 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:00 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 80°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:04 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:04 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 77°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:08 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:09 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 74°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:13 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:13 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 72°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:17 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:17 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 69°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:21 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:21 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 67°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:25 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:26 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 64°C/6°C/None°C | Fan (Set/Actual): 4200/4140 RPM | Pump: 0.00Hz
+18.11.2025 21:24:30 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:30 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 62°C/6°C/None°C | Fan (Set/Actual): 4200/4260 RPM | Pump: 0.00Hz
+18.11.2025 21:24:34 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:34 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 60°C/6°C/None°C | Fan (Set/Actual): 4200/4260 RPM | Pump: 0.00Hz
+18.11.2025 21:24:38 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:39 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 58°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:43 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:43 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 56°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:47 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:47 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 54°C/6°C/None°C | Fan (Set/Actual): 4200/4200 RPM | Pump: 0.00Hz
+18.11.2025 21:24:51 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:52 INFO: Parsed Status -> Mode: Shutting Down [4.0] | Error: No Error | Voltage: 1.7V | Temps (Heater/Flame/External): 52°C/6°C/None°C | Fan (Set/Actual): 4200/4260 RPM | Pump: 0.00Hz
+18.11.2025 21:24:56 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:24:56 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.9V | Temps (Heater/Flame/External): 50°C/6°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:00 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:00 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 50°C/6°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:04 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:04 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/6°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:08 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:09 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 50°C/7°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:13 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:13 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 50°C/7°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:17 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:17 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 50°C/7°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:21 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:22 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/7°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:26 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:26 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/7°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:30 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:30 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 50°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:34 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:35 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:39 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:39 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:43 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:43 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:47 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:47 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:51 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:52 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:25:56 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:25:56 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/8°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:00 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:00 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/9°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:04 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:05 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/9°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:09 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:09 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/9°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:13 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:13 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/9°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:17 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:18 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/9°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:22 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:22 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/10°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:26 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:26 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/10°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:30 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:30 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/10°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:34 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:35 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/10°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:39 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:39 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 49°C/11°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:43 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:43 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/11°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
+18.11.2025 21:26:47 INFO: [Heartbeat] SEND: AA 03 00 00 0F 58 7C
+18.11.2025 21:26:48 INFO: Parsed Status -> Mode: Standby [0.1] | Error: No Error | Voltage: 1.8V | Temps (Heater/Flame/External): 48°C/11°C/None°C | Fan (Set/Actual): 0/0 RPM | Pump: 0.00Hz
