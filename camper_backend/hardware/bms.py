@@ -2,11 +2,14 @@ import subprocess
 import re
 import sys
 import logging
+import threading
+import time
 from typing import Optional, Dict
 
 class BMSReader:
     """
     Reads JKBMS data by calling the 'jkbms' command-line tool from mppsolar.
+    Now uses a background thread to prevent blocking the main application loop.
     """
     def __init__(self, mac_address: str, protocol: str):
         self.mac = mac_address
@@ -14,6 +17,14 @@ class BMSReader:
         self.command = "getCellData"
         self.jkbms_path = self._find_jkbms_path()
         self.is_mocked = not bool(self.jkbms_path)
+        
+        self.last_data = None
+        self.lock = threading.Lock()
+        self.stop_event = threading.Event()
+        
+        # Start the background worker
+        self.thread = threading.Thread(target=self._worker, daemon=True)
+        self.thread.start()
 
     def _find_jkbms_path(self) -> Optional[str]:
         """Finds the full path to the jkbms executable."""
@@ -28,8 +39,23 @@ class BMSReader:
             logging.error("Please ensure mppsolar is installed and venv is active.")
         return None
 
-    def read_data(self) -> Optional[Dict[str, float]]:
-        """Calls the jkbms command and parses the output."""
+    def _worker(self):
+        """Background worker to poll BMS data."""
+        while not self.stop_event.is_set():
+            try:
+                data = self._fetch_data()
+                with self.lock:
+                    self.last_data = data
+            except Exception as e:
+                logging.error(f"Error in BMS worker: {e}")
+            
+            # Wait for 15 seconds before next poll
+            # We use wait() on the event so we can exit immediately if stopped
+            if self.stop_event.wait(15):
+                break
+
+    def _fetch_data(self) -> Optional[Dict[str, float]]:
+        """Internal method to actually call the jkbms command."""
         if self.is_mocked:
             return {'batterySoC': 85.5, 'batteryVoltage': 13.1, 'batteryAmperage': 2.3, 'batteryPower': 30.1}
 
@@ -71,3 +97,18 @@ class BMSReader:
         except Exception as e:
             logging.error(f"An unexpected error occurred while reading BMS: {e}")
             return None
+
+    def read_data(self) -> Optional[Dict[str, float]]:
+        """Returns the latest cached data immediately."""
+        with self.lock:
+            return self.last_data
+
+    def stop(self):
+        """Stops the background worker."""
+        self.stop_event.set()
+        if self.thread.is_alive():
+            self.thread.join(timeout=1)
+
+    def cleanup(self):
+        """Alias for stop, used by app.py cleanup."""
+        self.stop()

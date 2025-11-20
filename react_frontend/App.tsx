@@ -14,14 +14,14 @@ const initialVanState: VanState = {
   sensors: {
     freshWater: 0,
     grayWater: 0,
-    boilerTemp: 0, 
+    boilerTemp: 0,
     insideTemp: 0,
-    outsideTemp: 0, 
+    outsideTemp: 0,
     batterySoC: 0, // Should come from BMS
     batteryVoltage: 0,
     batteryAmperage: 0,
     batteryPower: 0,
-    boilerTempHistory: [], 
+    boilerTempHistory: [],
   },
   lights: [
     { id: 'deko', name: 'Deko Lights', level: 0 },
@@ -41,7 +41,7 @@ const initialVanState: VanState = {
   dieselHeater: {
     status: 'Standby',
     mode: 'power',
-    setpoint: 18,
+    setpoint: 24,
     powerLevel: 5,
     ventilationLevel: 0,
 
@@ -72,7 +72,7 @@ const App: React.FC = () => {
 
         // Merge the main sensor data (temp, water, bms)
         newState.sensors = { ...newState.sensors, ...otherSensors };
-        
+
         // If the update contains dieselHeater data, merge it separately
         if (dieselHeater) {
           newState.dieselHeater = { ...prevState.dieselHeater, ...dieselHeater }; // <-- FIX
@@ -93,7 +93,7 @@ const App: React.FC = () => {
       setVanState(updateFn);
       return;
     }
-    
+
     const prevState = vanState; // Get state *before* update for comparison
     const newState = updateFn(prevState);
 
@@ -104,22 +104,22 @@ const App: React.FC = () => {
     const newHeater = newState.dieselHeater;
 
     if (prevHeater.status === 'Standby' && newHeater.status === 'starting') {
-        let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
-        if (newHeater.mode === 'ventilation') {
-            socket.emit('diesel_heater_command', { command: 'turn_on_ventilation', value: newHeater.ventilationLevel });
-        } else {
-            socket.emit('diesel_heater_command', { command: 'turn_on', mode: newHeater.mode, value });
-        }
+      let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
+      if (newHeater.mode === 'ventilation') {
+        socket.emit('diesel_heater_command', { command: 'turn_on_ventilation', value: newHeater.ventilationLevel });
+      } else {
+        socket.emit('diesel_heater_command', { command: 'turn_on', mode: newHeater.mode, value });
+      }
     } else if (prevHeater.status !== 'Standby' && newHeater.status === 'shutting_down') {
-        socket.emit('diesel_heater_command', { command: 'shutdown' });
+      socket.emit('diesel_heater_command', { command: 'shutdown' });
     } else if (!newHeater.status.includes('Starting') && !newHeater.status.includes('Shutting') && !newHeater.status.includes('Cooling') && newHeater.status !== 'Standby') {
-        if (prevHeater.mode !== newHeater.mode || 
-            (newHeater.mode === 'temperature' && prevHeater.setpoint !== newHeater.setpoint) ||
-            (newHeater.mode === 'power' && prevHeater.powerLevel !== newHeater.powerLevel)) {
-            
-            let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
-            socket.emit('diesel_heater_command', { command: 'change_setting', mode: newHeater.mode, value: value });
-        }
+      if (prevHeater.mode !== newHeater.mode ||
+        (newHeater.mode === 'temperature' && prevHeater.setpoint !== newHeater.setpoint) ||
+        (newHeater.mode === 'power' && prevHeater.powerLevel !== newHeater.powerLevel)) {
+
+        let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
+        socket.emit('diesel_heater_command', { command: 'change_setting', mode: newHeater.mode, value: value });
+      }
     }
 
     // 2. Main Switches Array (KEPT FROM YOUR VERSION)
@@ -140,12 +140,12 @@ const App: React.FC = () => {
 
     // 4. Standalone Boiler Switch (KEPT FROM YOUR VERSION)
     if (prevState.boiler.isOn !== newState.boiler.isOn) {
-        socket.emit('switch_toggle', { id: newState.boiler.id, isOn: newState.boiler.isOn });
+      socket.emit('switch_toggle', { id: newState.boiler.id, isOn: newState.boiler.isOn });
     }
-    
+
     // 5. Standalone Floor Heating (KEPT FROM YOUR VERSION)
     if (prevState.floorHeating.level !== newState.floorHeating.level) {
-        socket.emit('floor_heating_change', { id: newState.floorHeating.id, level: newState.floorHeating.level });
+      socket.emit('floor_heating_change', { id: newState.floorHeating.id, level: newState.floorHeating.level });
     }
 
     // Finally, update the UI with the new state
@@ -168,7 +168,7 @@ const App: React.FC = () => {
 
   return (
     <div className="font-sans text-stone-800 min-h-screen"> {/* Removed flex layout */}
-      
+
       {/* The new TopNav is now a self-managing overlay component */}
       <TopNav activeView={activeView} setActiveView={setActiveView} />
 

@@ -60,16 +60,26 @@ class MockAutotermHeaterController:
             
         def parse_signed(val_str):
             val = int(val_str)
-            return val if val <= 127 else val - 256
+            # Fix for negative values in log that represent high temps
+            # If value is < -50 (unlikely to be real ambient), treat as unsigned wrap-around
+            if val < -20:
+                return val + 256
+            return val
         
         ext_temp_str = match.group(7)
+        # Store raw strings for debugging in the worker loop
+        raw_heater_temp = match.group(5)
+        raw_flame_temp = match.group(6)
+        
         return {
             "description": match.group(1).strip(),
             "error": match.group(3).strip(),
             "voltage": float(match.group(4)),
-            "heater_temp": parse_signed(match.group(5)),
-            "flame_temp": parse_signed(match.group(6)), 
+            "heater_temp": parse_signed(raw_heater_temp),
+            "flame_temp": parse_signed(raw_flame_temp), 
             "external_temp": int(ext_temp_str) if ext_temp_str != 'None' else None,
+            "raw_heater_temp": raw_heater_temp,
+            "raw_flame_temp": raw_flame_temp
         }
 
     def _mock_worker(self):
@@ -85,7 +95,19 @@ class MockAutotermHeaterController:
             with self.state_lock:
                 self.last_status = next_status
             
+            # Log the status update AND the debug info the user requested
             self.logger.info(f"MOCK UPDATE: Status set to '{next_status.get('description')}'")
+            
+            # Re-calculate for display purposes to match user's request
+            def parse_signed_debug(val_str):
+                val = int(val_str)
+                # Same fix here for debug output
+                if val < -20:
+                    return val + 256
+                return val
+
+            raw_ht = next_status.get('raw_heater_temp', '0')
+            self.logger.info(f"heater_temp = {raw_ht}, after the applied parsed signed: {parse_signed_debug(raw_ht)}")
 
             # Move to the next entry, looping back to the start if we reach the end
             self._log_index = (self._log_index + 1) % len(self._status_log_entries)

@@ -173,8 +173,8 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
 
                     <div className="flex flex-col gap-4 mt-2">
                         <div className="grid grid-cols-3 gap-3">
-                            <ModeButton label="Temp" isActive={dieselHeater.mode === 'temperature'} onClick={() => handleDieselHeaterUpdate({ mode: 'temperature' })} />
-                            <ModeButton label="Power" isActive={dieselHeater.mode === 'power'} onClick={() => handleDieselHeaterUpdate({ mode: 'power' })} />
+                            <ModeButton label="Temp" isActive={dieselHeater.mode === 'temperature'} onClick={() => handleDieselHeaterUpdate({ mode: 'temperature', setpoint: dieselHeater.setpoint || 24 })} />
+                            <ModeButton label="Power" isActive={dieselHeater.mode === 'power'} onClick={() => handleDieselHeaterUpdate({ mode: 'power', powerLevel: dieselHeater.powerLevel || 5 })} />
                             <ModeButton label="Vent" isActive={dieselHeater.mode === 'ventilation'} onClick={() => handleDieselHeaterUpdate({ mode: 'ventilation' })} />
                         </div>
                         <div className={`transition-opacity duration-300 opacity-100`}>

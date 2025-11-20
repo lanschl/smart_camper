@@ -391,7 +391,9 @@ class AutotermHeaterController:
             return None
     
         def parse_signed(b):
-            return b if b <= 127 else b - 256
+            if b <-20:
+                return b + 256
+            return b
         
         try:
             status_code = (payload[0], payload[1])
