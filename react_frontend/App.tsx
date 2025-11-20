@@ -8,6 +8,8 @@ import DashboardView from './views/DashboardView';
 import ControlsView from './views/ControlsView';
 import ClimateAndWaterView from './views/ClimateAndWaterView';
 
+import WeeklyTimerView from './views/WeeklyTimerView';
+
 const SOCKET_SERVER_URL = 'http://localhost:5000';
 
 const initialVanState: VanState = {
@@ -47,6 +49,9 @@ const initialVanState: VanState = {
 
     timerStartIn: null,
     timerShutdownIn: null,
+    timer: null,
+    timerEnabled: false,
+    runTimer: 0,
 
     readings: { heaterTemp: 0, voltage: 0, flameTemp: 0, panelTemp: 0 },
     errors: null,
@@ -75,7 +80,15 @@ const App: React.FC = () => {
 
         // If the update contains dieselHeater data, merge it separately
         if (dieselHeater) {
-          newState.dieselHeater = { ...prevState.dieselHeater, ...dieselHeater }; // <-- FIX
+          // Preserve UI-only state (timerEnabled, runTimer) if not provided in update
+          const preservedUIState = {
+            timerEnabled: prevState.dieselHeater.timerEnabled,
+            runTimer: prevState.dieselHeater.runTimer
+          };
+          newState.dieselHeater = { ...prevState.dieselHeater, ...dieselHeater, ...preservedUIState };
+
+          // If the backend sends a timer value, we might want to sync our UI? 
+          // For now, let's trust the UI state for the controls.
         }
         return newState;
       });
@@ -105,20 +118,59 @@ const App: React.FC = () => {
 
     if (prevHeater.status === 'Standby' && newHeater.status === 'starting') {
       let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
+      // Check if timer is requested (passed via run_timer_minutes in the update or from state)
+      let timerMinutes = newHeater.run_timer_minutes;
+      if (timerMinutes === undefined && newHeater.timerEnabled && newHeater.runTimer) {
+        timerMinutes = newHeater.runTimer * 60;
+      }
+
       if (newHeater.mode === 'ventilation') {
-        socket.emit('diesel_heater_command', { command: 'turn_on_ventilation', value: newHeater.ventilationLevel });
+        socket.emit('diesel_heater_command', { command: 'turn_on_ventilation', value: newHeater.ventilationLevel, run_timer_minutes: timerMinutes });
       } else {
-        socket.emit('diesel_heater_command', { command: 'turn_on', mode: newHeater.mode, value });
+        socket.emit('diesel_heater_command', { command: 'turn_on', mode: newHeater.mode, value, run_timer_minutes: timerMinutes });
       }
     } else if (prevHeater.status !== 'Standby' && newHeater.status === 'shutting_down') {
       socket.emit('diesel_heater_command', { command: 'shutdown' });
     } else if (!newHeater.status.includes('Starting') && !newHeater.status.includes('Shutting') && !newHeater.status.includes('Cooling') && newHeater.status !== 'Standby') {
-      if (prevHeater.mode !== newHeater.mode ||
-        (newHeater.mode === 'temperature' && prevHeater.setpoint !== newHeater.setpoint) ||
-        (newHeater.mode === 'power' && prevHeater.powerLevel !== newHeater.powerLevel)) {
 
+      // Check for Mode/Setting changes
+      const settingChanged = (prevHeater.mode !== newHeater.mode ||
+        (newHeater.mode === 'temperature' && prevHeater.setpoint !== newHeater.setpoint) ||
+        (newHeater.mode === 'power' && prevHeater.powerLevel !== newHeater.powerLevel));
+
+      // Check for Timer changes
+      const timerChanged = (prevHeater.timerEnabled !== newHeater.timerEnabled) ||
+        (newHeater.timerEnabled && prevHeater.runTimer !== newHeater.runTimer);
+
+      if (settingChanged || timerChanged) {
         let value = newHeater.mode === 'power' ? newHeater.powerLevel : newHeater.setpoint;
-        socket.emit('diesel_heater_command', { command: 'change_setting', mode: newHeater.mode, value: value });
+        let timerMinutes = newHeater.timerEnabled && newHeater.runTimer ? newHeater.runTimer * 60 : 0;
+
+        // If only timer changed, we can just re-issue the turn_on command with the new timer
+        // The backend 'change_setting' might not support timer updates directly if it just calls change_setting.
+        // But 'turn_on' usually handles "already running" by updating params.
+        // Let's use 'turn_on' if timer changed, to be safe, or ensure 'change_setting' supports it.
+        // Looking at backend code, 'change_setting' calls 'change_settings' which calls 'turn_on_...'. 
+        // BUT 'change_settings' in heater.py DOES NOT take a timer argument!
+        // So we MUST use 'turn_on' if we want to update the timer.
+
+        const command = timerChanged ? 'turn_on' : 'change_setting';
+
+        if (newHeater.mode === 'ventilation') {
+          // For ventilation, turn_on_ventilation supports timer.
+          socket.emit('diesel_heater_command', {
+            command: 'turn_on_ventilation',
+            value: newHeater.ventilationLevel,
+            run_timer_minutes: timerMinutes
+          });
+        } else {
+          socket.emit('diesel_heater_command', {
+            command: command,
+            mode: newHeater.mode,
+            value: value,
+            run_timer_minutes: timerMinutes
+          });
+        }
       }
     }
 
@@ -161,6 +213,8 @@ const App: React.FC = () => {
       case 'heating':
         // Pass the live sensor data to the heating view as well
         return <ClimateAndWaterView sensors={vanState.sensors} boiler={vanState.boiler} floorHeating={vanState.floorHeating} onUpdate={handleUpdate} dieselHeater={vanState.dieselHeater} />;
+      case 'weekly':
+        return <WeeklyTimerView />;
       default:
         return <DashboardView sensors={vanState.sensors} />;
     }

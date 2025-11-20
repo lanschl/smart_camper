@@ -1,5 +1,5 @@
 
-export type View = 'dashboard' | 'controls' | 'heating';
+export type View = 'dashboard' | 'controls' | 'heating' | 'weekly';
 
 export interface DimmableDevice {
   id: string;
@@ -41,7 +41,9 @@ export interface DieselHeaterState {
   // --- UI-ONLY STATE ---
   // These are for the sliders, in HOURS.
   startTimer?: number | null; // UI state: hours until start
+
   runTimer?: number | null;   // UI state: total run duration in hours
+  timerEnabled?: boolean;     // UI state: whether the run timer is enabled
 
   // This is a temporary property used to send commands
   command?: string;
