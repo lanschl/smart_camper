@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { VanState, View, DieselHeaterState } from './types'; // Import DieselHeaterState
+import { VanState, View, DieselHeaterState, ScheduleState } from './types'; // Import DieselHeaterState
 // import BottomNav from './components/BottomNav';
 //import SideNav from './components/SideNav';
 import TopNav from './components/TopNav';
@@ -55,6 +55,10 @@ const initialVanState: VanState = {
 
     readings: { heaterTemp: 0, voltage: 0, flameTemp: 0, panelTemp: 0 },
     errors: null,
+  },
+  schedule: {
+    timers: [],
+    isEnabled: false,
   }
 };
 
@@ -66,7 +70,14 @@ const App: React.FC = () => {
   useEffect(() => {
     const socket = io(SOCKET_SERVER_URL);
     socketRef.current = socket;
-    socket.on('connect', () => console.log('Connected to Python backend!'));
+
+    // --- MODIFIED: Initial Fetch on Connect ---
+    socket.on('connect', () => {
+      console.log('Connected to Python backend! Fetching initial state...');
+      // Request the schedule immediately upon connection
+      socket.emit('diesel_heater_schedule_command', { command: 'get_schedule' });
+    });
+
     socket.on('disconnect', () => console.log('Disconnected from Python backend.'));
 
     // --- MODIFIED SENSOR UPDATE LISTENER ---
@@ -92,6 +103,14 @@ const App: React.FC = () => {
         }
         return newState;
       });
+    });
+
+    // --- MODIFIED SCHEDULE UPDATE LISTENER ---
+    socket.on('schedule_update', (scheduleData: ScheduleState) => {
+      setVanState(prevState => ({
+        ...prevState,
+        schedule: scheduleData
+      }));
     });
 
     return () => { socket.disconnect(); };
@@ -214,7 +233,12 @@ const App: React.FC = () => {
         // Pass the live sensor data to the heating view as well
         return <ClimateAndWaterView sensors={vanState.sensors} boiler={vanState.boiler} floorHeating={vanState.floorHeating} onUpdate={handleUpdate} dieselHeater={vanState.dieselHeater} />;
       case 'weekly':
-        return <WeeklyTimerView />;
+        // --- PASS SCHEDULE STATE AND SOCKET REF AS PROPS ---
+        return <WeeklyTimerView
+          schedule={vanState.schedule}
+          socketRef={socketRef}
+          onUpdate={handleUpdate}
+        />;
       default:
         return <DashboardView sensors={vanState.sensors} />;
     }

@@ -52,6 +52,18 @@ export interface DieselHeaterState {
   run_timer_minutes?: number | null;
 }
 
+export interface ScheduleEntry {
+  days: number[]; // 0-6, 0=Monday
+  starttime: string; // "HH:MM"
+  endtime: string; // "HH:MM"
+  output: number; // Target Temp
+}
+
+export interface ScheduleState {
+  timers: ScheduleEntry[];
+  isEnabled: boolean;
+}
+
 
 export interface VanState {
   sensors: {
@@ -71,4 +83,5 @@ export interface VanState {
   boiler: SwitchDevice;
   floorHeating: DimmableDevice;
   dieselHeater: DieselHeaterState;
+  schedule: ScheduleState;
 }

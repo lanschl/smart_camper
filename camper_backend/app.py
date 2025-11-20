@@ -279,6 +279,9 @@ def sensor_reading_thread():
         # --- NEW: Check local runtime timer ---
         check_runtime_timer()
         
+        # --- NEW: Check weekly schedule ---
+        check_heater_schedule()
+        
         # 1. Read local sensors
         sensor_data = sensor_reader.read_all_sensors()
 
@@ -370,6 +373,13 @@ def handle_diesel_heater_schedule_command(data):
             save_heater_schedule() # Save to persistence
         else:
             logging.error("Invalid schedule format received (expected a list).")
+
+    elif command == 'get_schedule':
+        # Send the current schedule back to the client
+        socketio.emit('schedule_update', {
+            'timers': HEATER_SCHEDULE.get("timers", []),
+            'isEnabled': HEATER_TIMER_ON_OFF
+        })
 
 @socketio.on('diesel_heater_command')
 def handle_diesel_heater_command(data):
