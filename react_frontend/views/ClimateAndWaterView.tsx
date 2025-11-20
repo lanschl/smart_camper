@@ -4,18 +4,15 @@ import FatSliderControl from '../components/FatSliderControl';
 import SwitchButtonControl from '../components/SwitchButtonControl';
 import { PowerIcon, HeaterIcon, TemperatureIcon, FlameIcon, FanIcon, BatteryIcon, WarningIcon } from '../components/Icons';
 
-
-
-const DataPoint: React.FC<{ icon: React.ReactNode; label: string; value: string }> = ({ icon, label, value }) => (
-    <div className="flex flex-col items-center justify-center text-center bg-stone-800/40 p-3 rounded-lg">
-        <div className="text-amber-700">{icon}</div>
-        <span className="text-sm font-medium text-stone-400 mt-1">{label}</span>
+const CompactSensor: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+    <div className="flex flex-col items-center justify-center bg-stone-800/40 p-2 rounded-lg border border-white/5">
+        <span className="text-xs font-medium text-stone-400 uppercase tracking-wider">{label}</span>
         <span className="text-lg font-bold text-stone-100">{value}</span>
     </div>
 );
 
 const ModeButton: React.FC<{ label: string; isActive: boolean; onClick: () => void; disabled?: boolean; }> = ({ label, isActive, onClick, disabled }) => {
-    const baseClasses = "w-full text-center font-semibold py-2 px-4 rounded-lg transition-all duration-200 ease-in-out";
+    const baseClasses = "w-full text-center font-semibold py-2 px-2 rounded-lg transition-all duration-200 ease-in-out text-sm";
     const activeClasses = "bg-amber-700 text-white shadow-md";
     const inactiveClasses = "bg-stone-700/50 hover:bg-stone-600/60 text-stone-200";
     const disabledClasses = "opacity-50 cursor-not-allowed";
@@ -52,9 +49,6 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
         }));
     };
 
-    // Local state for timer selection (before applying)
-    const [timerDuration, setTimerDuration] = useState<number>(0);
-
     const [lastError, setLastError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -68,8 +62,14 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
         // If the user wants to turn it ON, it must be in 'Standby'
         if (shouldBeOn && dieselHeater.status === 'Standby') {
             setLastError(null); // Clear previous error when starting
-            // Pass the timer duration if it's set (> 0)
-            handleDieselHeaterUpdate({ status: 'starting', timer: timerDuration > 0 ? timerDuration : null });
+
+            // If timer is enabled, pass the runTimer value
+            const timerValue = dieselHeater.timerEnabled && dieselHeater.runTimer ? dieselHeater.runTimer * 60 : null;
+
+            handleDieselHeaterUpdate({
+                status: 'starting',
+                run_timer_minutes: timerValue
+            });
         }
         // If the user wants to turn it OFF, it must be in any state other than 'Standby'
         else if (!shouldBeOn && dieselHeater.status !== 'Standby') {
@@ -80,7 +80,27 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
     const isHeaterOn = dieselHeater.status !== 'Standby';
     const isTransitioning = dieselHeater.status.includes('Starting') || dieselHeater.status.includes('Shutting');
 
+    // Timer Logic
+    const handleTimerToggle = () => {
+        const newEnabledState = !dieselHeater.timerEnabled;
+        handleDieselHeaterUpdate({ timerEnabled: newEnabledState });
+
+        // If heater is running, we need to send a command immediately
+        if (isHeaterOn && !isTransitioning) {
+            // Logic will be handled in App.tsx via handleUpdate, but we trigger the state change here
+        }
+    };
+
     const renderDieselHeaterControl = () => {
+        // If Timer is "active" (selected as a mode to view), show the slider
+        // BUT the user wants "Timer" as a button in the row.
+        // Let's interpret "Timer" button as a toggle for the timer functionality, 
+        // OR as a view to set the timer.
+        // The user said: "another button called timer... this should be able to have a off and a on state. on the on state we sent the set time... and in the off state we don't"
+
+        // So it seems like a toggle. But we also need to see the slider.
+        // Let's show the slider if the timer is enabled.
+
         switch (dieselHeater.mode) {
             case 'temperature':
                 return (
@@ -101,7 +121,7 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                         level={dieselHeater.powerLevel}
                         onChange={level => handleDieselHeaterUpdate({ powerLevel: level })}
                         color="#b45309"
-                        min={0}
+                        min={1}
                         max={9}
                         unit=""
                     />
@@ -169,38 +189,48 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                         </div>
                     )}
 
+                    {/* Compact Sensors Row */}
                     <div className="grid grid-cols-4 gap-2">
-                        <DataPoint icon={<TemperatureIcon className="w-5 h-5" />} label="Heater" value={`${dieselHeater.readings.heaterTemp}°C`} />
-                        <DataPoint icon={<FlameIcon className="w-5 h-5" />} label="Flame" value={`${dieselHeater.readings.flameTemp}°C`} />
-                        <DataPoint icon={<TemperatureIcon className="w-5 h-5" />} label="Panel" value={`${dieselHeater.readings.panelTemp}°C`} />
-                        <DataPoint icon={<span className="text-xl font-bold">⏱</span>} label="Timer" value={dieselHeater.timer ? `${dieselHeater.timer}m` : (timerDuration > 0 ? `${timerDuration}m` : 'Off')} />
+                        <CompactSensor label="Heater" value={`${dieselHeater.readings.heaterTemp}°C`} />
+                        <CompactSensor label="Flame" value={`${dieselHeater.readings.flameTemp}°C`} />
+                        <CompactSensor label="Panel" value={`${dieselHeater.readings.panelTemp}°C`} />
+                        {/* Timer Status Card */}
+                        <div className={`flex flex-col items-center justify-center p-2 rounded-lg border border-white/5 ${dieselHeater.timer ? 'bg-amber-900/40' : 'bg-stone-800/40'}`}>
+                            <span className="text-xs font-medium text-stone-400 uppercase tracking-wider">Timer</span>
+                            <span className="text-lg font-bold text-stone-100">
+                                {dieselHeater.timer ? `${dieselHeater.timer}m` : 'OFF'}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="flex flex-col gap-4 mt-2">
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-4 gap-2">
                             <ModeButton label="Temp" isActive={dieselHeater.mode === 'temperature'} onClick={() => handleDieselHeaterUpdate({ mode: 'temperature', setpoint: dieselHeater.setpoint || 24 })} />
                             <ModeButton label="Power" isActive={dieselHeater.mode === 'power'} onClick={() => handleDieselHeaterUpdate({ mode: 'power', powerLevel: dieselHeater.powerLevel || 5 })} />
                             <ModeButton label="Vent" isActive={dieselHeater.mode === 'ventilation'} onClick={() => handleDieselHeaterUpdate({ mode: 'ventilation' })} />
-                        </div>
-                        <div className={`transition-opacity duration-300 opacity-100`}>
-                            {renderDieselHeaterControl()}
-                        </div>
-
-                        {/* Timer Control - Only show when heater is off (to set initial timer) or we want to extend? 
-                            For now, let's allow setting it when OFF. 
-                        */}
-                        {dieselHeater.status === 'Standby' && (
-                            <FatSliderControl
-                                label="Set Timer (Minutes)"
-                                level={timerDuration}
-                                onChange={setTimerDuration}
-                                color="#b45309"
-                                min={0}
-                                max={120}
-                                step={10}
-                                unit="m"
+                            <ModeButton
+                                label="Timer"
+                                isActive={!!dieselHeater.timerEnabled}
+                                onClick={handleTimerToggle}
                             />
-                        )}
+                        </div>
+                        <div className={`transition-opacity duration-300 opacity-100 flex flex-col gap-4`}>
+                            {renderDieselHeaterControl()}
+
+                            {/* Secondary Timer Slider */}
+                            {dieselHeater.timerEnabled && (
+                                <FatSliderControl
+                                    label="Set Timer Duration"
+                                    level={dieselHeater.runTimer || 0}
+                                    onChange={level => handleDieselHeaterUpdate({ runTimer: level })}
+                                    color="#78350f" // amber-900
+                                    min={0.5}
+                                    max={12}
+                                    step={0.5}
+                                    unit="h"
+                                />
+                            )}
+                        </div>
                     </div>
                 </div>
 
