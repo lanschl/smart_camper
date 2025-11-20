@@ -86,7 +86,7 @@ class HeaterController:
             'setpoint': setpoint_val,
             'powerLevel': power_val,
             'ventilationLevel': vent_val,
-            'timer': None, # Timers are not supported by the new library
+            'timer': status_data.get('remaining_minutes'),
             'errors': status_data.get('error', 'No Error'),
             'readings': {
                 'heaterTemp': status_data.get('heater_temp', 0),
@@ -120,12 +120,9 @@ class HeaterController:
         lib_mode = MODE_MAP.get(mode)
         
         if lib_mode == 'temp':
-            self.heater.turn_on_temp_mode(int(value))
+            self.heater.turn_on_temp_mode(int(value), timer_minutes=run_timer_minutes)
         elif lib_mode == 'power':
-            self.heater.turn_on_power_mode(int(value))
-        
-        if run_timer_minutes:
-            self.logger.warning("run_timer_minutes is not supported by the new heater library and was ignored.")
+            self.heater.turn_on_power_mode(int(value), timer_minutes=run_timer_minutes)
 
     def turn_on_ventilation(self, level: int, run_timer_minutes: Optional[int]):
         """
@@ -135,10 +132,7 @@ class HeaterController:
         if not self.heater or not self.heater.is_initialized: 
             return
         
-        self.heater.turn_on_fan_only(int(level))
-        
-        if run_timer_minutes:
-            self.logger.warning("run_timer_minutes is not supported by the new heater library and was ignored.")
+        self.heater.turn_on_fan_only(int(level), timer_minutes=run_timer_minutes)
 
     def change_settings(self, mode: str, value: int):
         """

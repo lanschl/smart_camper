@@ -22,6 +22,7 @@ class MockAutotermHeaterController:
         self.current_mode = 'off'
         self.current_setpoint = 0
         self.cabin_temperature = 20
+        self.timer_end_time = None
 
         # Data for the simulation
         self._status_log_entries = []
@@ -112,6 +113,11 @@ class MockAutotermHeaterController:
             # Move to the next entry, looping back to the start if we reach the end
             self._log_index = (self._log_index + 1) % len(self._status_log_entries)
             
+            # Check Timer
+            if self.timer_end_time and time.time() >= self.timer_end_time:
+                self.logger.info("MOCK: Timer expired! Shutting down heater.")
+                self.turn_off()
+
             # Wait for 2 seconds before the next update
             self.stop_event.wait(2)
 
@@ -124,7 +130,14 @@ class MockAutotermHeaterController:
 
     def get_last_status(self) -> Dict[str, Any]:
         with self.state_lock:
-            return self.last_status.copy()
+            status = self.last_status.copy()
+            if self.timer_end_time:
+                remaining = int((self.timer_end_time - time.time()) / 60)
+                if remaining < 0: remaining = 0
+                status['remaining_minutes'] = remaining
+            else:
+                status['remaining_minutes'] = None
+            return status
             
     def cleanup(self):
         self.logger.info("Cleaning up mock heater...")
@@ -133,8 +146,28 @@ class MockAutotermHeaterController:
             self.worker_thread.join(timeout=1)
 
     # Mocked command methods just log that they were called
-    def turn_on_power_mode(self, level: int): self.logger.info(f"MOCK COMMAND: turn_on_power_mode(level={level})")
-    def turn_on_temp_mode(self, setpoint: int): self.logger.info(f"MOCK COMMAND: turn_on_temp_mode(setpoint={setpoint})")
-    def turn_on_fan_only(self, level: int): self.logger.info(f"MOCK COMMAND: turn_on_fan_only(level={level})")
-    def turn_off(self): self.logger.info("MOCK COMMAND: turn_off()")
+    def turn_on_power_mode(self, level: int, timer_minutes: int = None): 
+        self.logger.info(f"MOCK COMMAND: turn_on_power_mode(level={level}, timer={timer_minutes})")
+        if timer_minutes:
+            self.timer_end_time = time.time() + (timer_minutes * 60)
+        else:
+            self.timer_end_time = None
+
+    def turn_on_temp_mode(self, setpoint: int, timer_minutes: int = None): 
+        self.logger.info(f"MOCK COMMAND: turn_on_temp_mode(setpoint={setpoint}, timer={timer_minutes})")
+        if timer_minutes:
+            self.timer_end_time = time.time() + (timer_minutes * 60)
+        else:
+            self.timer_end_time = None
+
+    def turn_on_fan_only(self, level: int, timer_minutes: int = None): 
+        self.logger.info(f"MOCK COMMAND: turn_on_fan_only(level={level}, timer={timer_minutes})")
+        if timer_minutes:
+            self.timer_end_time = time.time() + (timer_minutes * 60)
+        else:
+            self.timer_end_time = None
+
+    def turn_off(self): 
+        self.logger.info("MOCK COMMAND: turn_off()")
+        self.timer_end_time = None
     def update_controller_temperature(self, temp: int): pass # No need to log this one

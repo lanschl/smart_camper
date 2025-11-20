@@ -80,6 +80,7 @@ class AutotermHeaterController:
         self.current_mode = 'off' # 'off', 'temp', 'power', 'fan'
         self.current_setpoint = 0
         self.cabin_temperature = 20 # Default, will be updated by heater.py
+        self.timer_end_time: Optional[float] = None # Timestamp when timer expires
         
         # --- Logging ---
         self.logger = logging.getLogger("AutotermHeater") 
@@ -305,6 +306,21 @@ class AutotermHeaterController:
                 if status:
                     with self.state_lock:
                         self.last_status = status
+                        
+                        # Check Timer
+                        if self.timer_end_time and time.time() >= self.timer_end_time:
+                            self.logger.info("Timer expired! Shutting down heater.")
+                            # We need to call turn_off, but turn_off acquires state_lock.
+                            # So we release it first? No, turn_off acquires it.
+                            # But we are currently holding it? Yes, we are inside `with self.state_lock`.
+                            # Wait, `self.last_status = status` is inside the lock.
+                            # We should check timer OUTSIDE the lock or handle it carefully.
+                            pass 
+
+                    # Check timer outside the lock to avoid deadlock if turn_off uses the lock
+                    if self.timer_end_time and time.time() >= self.timer_end_time:
+                         self.turn_off()
+
                 else:
                     # If status fails, we lost connection
                     self.logger.warning("Lost connection to heater. Resetting...")
@@ -321,7 +337,14 @@ class AutotermHeaterController:
     def get_last_status(self) -> Dict[str, Any]:
         """Returns the last known status from the worker thread."""
         with self.state_lock:
-            return self.last_status.copy()
+            status = self.last_status.copy()
+            if self.timer_end_time:
+                remaining = int((self.timer_end_time - time.time()) / 60)
+                if remaining < 0: remaining = 0
+                status['remaining_minutes'] = remaining
+            else:
+                status['remaining_minutes'] = None
+            return status
 
     def update_controller_temperature(self, temp: int):
         """Receives the real cabin temperature from the main app."""
@@ -331,7 +354,7 @@ class AutotermHeaterController:
 
     # --- Public Commands ---
 
-    def turn_on_power_mode(self, level: int) -> bool:
+    def turn_on_power_mode(self, level: int, timer_minutes: Optional[int] = None) -> bool:
         if not self.is_initialized: 
             return False
         self.logger.info(f"Sending command: POWER mode at level {level}...")
@@ -341,9 +364,14 @@ class AutotermHeaterController:
             with self.state_lock:
                 self.current_mode = 'power'
                 self.current_setpoint = level
+                if timer_minutes:
+                    self.timer_end_time = time.time() + (timer_minutes * 60)
+                    self.logger.info(f"Timer set for {timer_minutes} minutes.")
+                else:
+                    self.timer_end_time = None
         return success
 
-    def turn_on_temp_mode(self, setpoint: int) -> bool:
+    def turn_on_temp_mode(self, setpoint: int, timer_minutes: Optional[int] = None) -> bool:
         if not self.is_initialized: 
             return False
         self.logger.info(f"Sending command: TEMPERATURE mode with setpoint {setpoint}°C...")
@@ -353,9 +381,14 @@ class AutotermHeaterController:
             with self.state_lock:
                 self.current_mode = 'temp'
                 self.current_setpoint = setpoint
+                if timer_minutes:
+                    self.timer_end_time = time.time() + (timer_minutes * 60)
+                    self.logger.info(f"Timer set for {timer_minutes} minutes.")
+                else:
+                    self.timer_end_time = None
         return success
 
-    def turn_on_fan_only(self, level: int) -> bool:
+    def turn_on_fan_only(self, level: int, timer_minutes: Optional[int] = None) -> bool:
         if not self.is_initialized: 
             return False
         self.logger.info(f"Sending command: FAN ONLY mode at level {level}...")
@@ -365,6 +398,11 @@ class AutotermHeaterController:
             with self.state_lock:
                 self.current_mode = 'fan'
                 self.current_setpoint = level
+                if timer_minutes:
+                    self.timer_end_time = time.time() + (timer_minutes * 60)
+                    self.logger.info(f"Timer set for {timer_minutes} minutes.")
+                else:
+                    self.timer_end_time = None
         return success
     
     def turn_off(self) -> bool:
@@ -376,6 +414,7 @@ class AutotermHeaterController:
             with self.state_lock:
                 self.current_mode = 'off'
                 self.current_setpoint = 0
+                self.timer_end_time = None
         return success
 
     def report_controller_temperature(self, temp: int) -> bool:
