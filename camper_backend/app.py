@@ -31,6 +31,26 @@ logging.basicConfig(
     ]
 )
 
+
+# --- NEW: Global State for Local Runtime Timer (Python-managed timer) ---
+# Unix timestamp (seconds) when the initial timer should expire.
+HEATER_RUNTIME_END_TIME: Optional[float] = None
+# Unix timestamp (seconds) when the final safety shutdown should occur (Node-RED's 5-minute delay).
+HEATER_SAFETY_SHUTDOWN_TIME: Optional[float] = None
+# Flag to prevent re-sending the initial shutdown command
+HEATER_SHUTDOWN_TRIGGERED = False
+# Stores the initial duration for UI reporting (in minutes)
+HEATER_RUNTIME_DURATION: Optional[int] = None
+# --- NEW: Global State for Weekly Scheduler (Mimics Node-RED's external storage) ---
+# NOTE: In a production system, these should be loaded from a persistent storage like a DB or file.
+HEATER_SCHEDULE_FILE = '/home/lukas/smart_camper/camper_backend/heater_schedule.json' 
+HEATER_TIMER_ON_OFF = False # Mimics the Timer Off/On switch (773d9bfdbb55d26d)
+HEATER_SCHEDULE = {
+    "timers": [
+        # { "starttime": "08:00", "days": [1, 2, 3, 4, 5], "output": 22, "endtime": "09:00" } 
+    ]
+}
+
 # --- Initialization ---
 app = Flask(__name__)
 # In a real app, you'd want a more secure secret key
@@ -78,8 +98,104 @@ def load_history_from_log():
         
     return history
 
+def load_heater_schedule():
+    """Placeholder for loading state from a persistent file/DB on startup."""
+    global HEATER_SCHEDULE
+    try:
+        # Assuming HEATER_SCHEDULE_FILE contains the JSON structure
+        with open(HEATER_SCHEDULE_FILE, 'r') as f:
+            HEATER_SCHEDULE = json.load(f)
+        # Note: Loading the HEATER_TIMER_ON_OFF boolean would be done here too
+    except (FileNotFoundError, json.JSONDecodeError):
+        logging.warning("Heater schedule file not found or invalid. Starting with empty schedule.")
+    except Exception as e:
+        logging.error(f"Error loading heater schedule: {e}")
 
+def save_heater_schedule():
+    """Placeholder for saving state to a persistent file/DB."""
+    global HEATER_SCHEDULE
+    try:
+        with open(HEATER_SCHEDULE_FILE, 'w') as f:
+            json.dump(HEATER_SCHEDULE, f)
+    except Exception as e:
+        logging.error(f"Error saving heater schedule: {e}")
+
+
+def check_heater_schedule():
+    """Checks the weekly schedule and sends commands if a timer has fired."""
+    global HEATER_TIMER_ON_OFF, HEATER_SCHEDULE
+
+    if not HEATER_TIMER_ON_OFF:
+        return # Timer system disabled (matches Node-RED's 'check timer on/off' switch)
+
+    now = datetime.now()
+    current_day = now.weekday() # Monday is 0, Sunday is 6
+    # Note: Using seconds ensures this only fires once per minute (or less often depending on the loop interval)
+    current_time_str_min = now.strftime("%H:%M") 
+
+    for timer in HEATER_SCHEDULE.get("timers", []):
+        days = timer.get("days", [])
+        start_time_str = timer.get("starttime")
+        end_time_str = timer.get("endtime")
+
+        if current_day in days:
+            # --- START TIME LOGIC (Mimics Node-RED's [true] output) ---
+            if start_time_str == current_time_str_min:
+                # Node-RED timer forces the heater into TempMode at the setpoint stored in 'output'
+                setpoint = timer.get("output", 22) 
+                
+                # Simple check to prevent sending commands repeatedly every 10 seconds
+                heater_state = heater_controller.get_state()
+                if heater_state.get('mode') != 'temperature' or heater_state.get('setpoint') != setpoint:
+                    logging.info(f"SCHEDULE FIRED: Starting Temp Mode to {setpoint}°C.")
+                    # The Node-RED scheduler is a fixed time point, not a timed run, so no runtime timer is set here
+                    heater_controller.turn_on_heating(
+                        mode='temperature', 
+                        value=setpoint,
+                        run_timer_minutes=None
+                    )
+                
+            # --- END TIME LOGIC (Mimics Node-RED's [false] output) ---
+            elif end_time_str == current_time_str_min:
+                logging.info("SCHEDULE FIRED: Shutting down heater.")
+                # Node-RED sends a direct stop command
+                heater_controller.shutdown()
+
+load_heater_schedule() # Call this once on startup
 boiler_temp_history = load_history_from_log()
+
+# --- NEW: Timer Management function to run in background thread ---
+def check_runtime_timer():
+    """
+    Checks the local timer and triggers the shutdown sequence if it has expired.
+    Also handles the second, delayed safety shutdown (Node-RED's 5-minute delay).
+    """
+    global HEATER_RUNTIME_END_TIME, HEATER_SAFETY_SHUTDOWN_TIME, HEATER_SHUTDOWN_TRIGGERED, HEATER_RUNTIME_DURATION
+    
+    current_time = time.time()
+    
+    # --- STEP 1: Check for Initial Shutdown Trigger ---
+    if HEATER_RUNTIME_END_TIME is not None and current_time >= HEATER_RUNTIME_END_TIME and not HEATER_SHUTDOWN_TRIGGERED:
+        logging.info("RUNTIME TIMER EXPIRED: Triggering initial heater shutdown.")
+        heater_controller.shutdown() 
+        
+        # Set the safety shutdown time for 5 minutes later (Node-RED delay)
+        HEATER_SAFETY_SHUTDOWN_TIME = current_time + (5 * 60)
+        HEATER_SHUTDOWN_TRIGGERED = True
+        
+        # Clear the runtime timer so it doesn't fire again
+        HEATER_RUNTIME_END_TIME = None 
+
+    # --- STEP 2: Check for Safety Shutdown Trigger (5m delay) ---
+    if HEATER_SAFETY_SHUTDOWN_TIME is not None and current_time >= HEATER_SAFETY_SHUTDOWN_TIME:
+        logging.info("SAFETY SHUTDOWN TIMER EXPIRED: Sending secondary shutdown command.")
+        # Node-RED: Triggers the final delayed stop
+        heater_controller.shutdown() 
+        
+        # Clear all state variables
+        HEATER_SAFETY_SHUTDOWN_TIME = None
+        HEATER_RUNTIME_DURATION = None
+        HEATER_SHUTDOWN_TRIGGERED = False
 
 # --- Web Socket Event Handlers ---
 
@@ -156,17 +272,17 @@ def sensor_reading_thread():
     """
     Reads sensors, logs boiler temp, checks timers, and pushes updates.
     """
+    global HEATER_RUNTIME_END_TIME, HEATER_SAFETY_SHUTDOWN_TIME
+    
     print("Starting sensor reading background thread.")
-    # *** REMOVED: Global timer variables ***
     while True:
-        # --- NEW: Check heater timers ---
-        # This will automatically trigger start/shutdown if needed
-        # heater_controller.check_timers()
+        # --- NEW: Check local runtime timer ---
+        check_runtime_timer()
         
         # 1. Read local sensors
         sensor_data = sensor_reader.read_all_sensors()
 
-        # 2. Read water level sensors
+        # 2. Read water level sensors, BMS data... (remains the same)
         water_levels = water_level_controller.read_levels()
         sensor_data.update(water_levels)
         bms_data = bms_reader.read_data()
@@ -178,11 +294,31 @@ def sensor_reading_thread():
         if inside_temp is not None:
             heater_controller.update_cabin_temperature(inside_temp)
             
-        # 4. Get the latest full state from the heater (which now includes timer info)
+        # 4. Get the latest full state from the heater 
         heater_state = heater_controller.get_state()
+        
         if heater_state:
             if inside_temp:
                 heater_state['readings']['panelTemp'] = inside_temp
+            
+            # --- MODIFIED: Override the timer display with local countdown ---
+            local_remaining_minutes = None
+            current_time = time.time()
+            
+            if HEATER_RUNTIME_END_TIME is not None:
+                 # Timer is actively running toward the end time
+                 local_remaining_minutes = max(0, int((HEATER_RUNTIME_END_TIME - current_time) / 60))
+            elif HEATER_SAFETY_SHUTDOWN_TIME is not None:
+                # Timer expired, we are in the 5-minute cooldown/safety period. Display 0.
+                local_remaining_minutes = 0
+
+            if local_remaining_minutes is not None:
+                # Override the hardware controller's timer state for accurate UI countdown
+                heater_state['timer'] = local_remaining_minutes
+            elif HEATER_RUNTIME_DURATION is not None and HEATER_SAFETY_SHUTDOWN_TIME is None:
+                # This state means the timer expired, shutdown was triggered, but the safety check hasn't run yet.
+                heater_state['timer'] = 0
+            
             sensor_data['dieselHeater'] = heater_state
         
         # 5. Log boiler temperature
@@ -209,47 +345,94 @@ def sensor_reading_thread():
         
         socketio.sleep(10) # 10-second loop
 
+# --- NEW: SocketIO handler for controlling the persistent scheduler ---
+@socketio.on('diesel_heater_schedule_command')
+def handle_diesel_heater_schedule_command(data):
+    """
+    Handles commands for the persistent weekly schedule (e.g., setting the timers from UI).
+    e.g., {'command': 'set_timer_toggle', 'value': True}
+    e.g., {'command': 'set_schedule', 'schedule': [{...}]}
+    """
+    global HEATER_TIMER_ON_OFF, HEATER_SCHEDULE
+    command = data.get('command')
+    
+    if command == 'set_timer_toggle':
+        # Mimics the "Timer Off/On" switch in Node-RED
+        HEATER_TIMER_ON_OFF = data.get('value', False)
+        logging.info(f"Heater Weekly Timer System toggled to: {HEATER_TIMER_ON_OFF}")
+        
+    elif command == 'set_schedule':
+        # Mimics the saving of the schedule after being edited
+        new_schedule = data.get('schedule')
+        if isinstance(new_schedule, list):
+            HEATER_SCHEDULE["timers"] = new_schedule
+            logging.info(f"Heater schedule updated with {len(new_schedule)} entries.")
+            save_heater_schedule() # Save to persistence
+        else:
+            logging.error("Invalid schedule format received (expected a list).")
+
 @socketio.on('diesel_heater_command')
 def handle_diesel_heater_command(data):
     """
     Handles all commands for the diesel heater.
-    e.g., {'command': 'start_in', 'value': 30, 'action': {'command': 'turn_on', 'mode': 'power', 'value': 5, 'run_timer_minutes': 120}}
-    e.g., {'command': 'shutdown'}
-    e.g., {'command': 'turn_on', 'mode': 'temperature', 'value': 22, 'run_timer_minutes': 60}
+    If 'run_timer_minutes' is present, it starts the Python-managed local timer.
     """
-    # *** REMOVED: Global timer variables ***
+    global HEATER_RUNTIME_END_TIME, HEATER_SAFETY_SHUTDOWN_TIME, HEATER_RUNTIME_DURATION, HEATER_SHUTDOWN_TRIGGERED
+    
     command = data.get('command')
     logging.info(f"Received diesel_heater_command: {data}")
     
-    # if command == 'start_in':
-        # *** UPDATED: Use controller method ***
-        # heater_controller.set_start_timer(data.get('value'), data.get('action'))
-            
-    # elif command == 'cancel_start_timer':
-        # *** UPDATED: Use controller method ***
-        # heater_controller.cancel_start_timer()
-        
+    # --- SHUTDOWN / RESET LOGIC ---
     if command == 'shutdown':
+        # Node-RED Stop button logic: Stops the heater AND resets the timer.
         heater_controller.shutdown()
         
-    elif command == 'turn_on':
-        # This now correctly passes the run_timer_minutes
-        heater_controller.turn_on_heating(
-            data.get('mode'), 
-            data.get('value'),
-            data.get('run_timer_minutes')
-        )
+        HEATER_RUNTIME_END_TIME = None
+        HEATER_SAFETY_SHUTDOWN_TIME = None
+        HEATER_RUNTIME_DURATION = None
+        HEATER_SHUTDOWN_TRIGGERED = False
         
-    elif command == 'turn_on_ventilation':
-        # This now correctly passes the run_timer_minutes
-        heater_controller.turn_on_ventilation(
-            data.get('value'),
-            data.get('run_timer_minutes')
-        )
+    # --- START/TURN ON LOGIC ---
+    elif command == 'turn_on' or command == 'turn_on_ventilation':
+        mode = data.get('mode')
+        value = data.get('value')
+        run_timer_minutes = data.get('run_timer_minutes')
         
+        if run_timer_minutes is not None and run_timer_minutes > 0:
+            # --- START TIMED RUN (Python-Managed) ---
+            minutes = int(run_timer_minutes)
+            logging.info(f"Starting Python-managed timed run for {minutes} minutes.")
+            
+            # Set the local timer state
+            HEATER_RUNTIME_END_TIME = time.time() + (minutes * 60)
+            HEATER_RUNTIME_DURATION = minutes
+            HEATER_SAFETY_SHUTDOWN_TIME = None
+            HEATER_SHUTDOWN_TRIGGERED = False
+            
+            # Send the ON command *without* setting the internal hardware timer
+            # Note: We pass run_timer_minutes=None here to tell the heater controller
+            # to rely on Python for the shutdown.
+            if command == 'turn_on':
+                heater_controller.turn_on_heating(mode, value, run_timer_minutes=None)
+            else:
+                heater_controller.turn_on_ventilation(value, run_timer_minutes=None)
+        
+        else:
+            # --- START INDEFINITE RUN ---
+            # Clear local timer and run indefinitely (Python will not interfere)
+            HEATER_RUNTIME_END_TIME = None
+            HEATER_SAFETY_SHUTDOWN_TIME = None
+            HEATER_RUNTIME_DURATION = None
+            HEATER_SHUTDOWN_TRIGGERED = False
+
+            if command == 'turn_on':
+                heater_controller.turn_on_heating(mode, value, run_timer_minutes=None)
+            else:
+                heater_controller.turn_on_ventilation(value, run_timer_minutes=None)
+        
+    # --- CHANGE SETTING LOGIC ---
     elif command == 'change_setting':
-        # Note: This relies on the 'change_settings' method to preserve
-        # the existing shutdown timer.
+        # Allows for changing mode/value while a timer is running (Python or Hardware-managed)
         heater_controller.change_settings(data.get('mode'), data.get('value'))
 
 

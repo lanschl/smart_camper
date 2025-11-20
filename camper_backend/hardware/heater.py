@@ -111,7 +111,7 @@ class HeaterController:
     def turn_on_heating(self, mode: str, value: int, run_timer_minutes: Optional[int]):
         """
         Starts heating or power mode.
-        NOTE: run_timer_minutes is not supported by the new library and will be ignored.
+        The run_timer_minutes parameter is correctly passed to the core controller.
         """
         if not self.heater or not self.heater.is_initialized: 
             self.logger.warning("Cannot turn on: Heater not connected.")
@@ -120,6 +120,7 @@ class HeaterController:
         lib_mode = MODE_MAP.get(mode)
         
         if lib_mode == 'temp':
+            # NOTE: The Node-RED flow starts timers in Temp Mode only.
             self.heater.turn_on_temp_mode(int(value), timer_minutes=run_timer_minutes)
         elif lib_mode == 'power':
             self.heater.turn_on_power_mode(int(value), timer_minutes=run_timer_minutes)
@@ -127,7 +128,6 @@ class HeaterController:
     def turn_on_ventilation(self, level: int, run_timer_minutes: Optional[int]):
         """
         Starts fan-only mode.
-        NOTE: run_timer_minutes is not supported by the new library and will be ignored.
         """
         if not self.heater or not self.heater.is_initialized: 
             return
