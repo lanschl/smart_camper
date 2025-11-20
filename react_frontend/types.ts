@@ -23,12 +23,13 @@ export interface DieselHeaterState {
   setpoint: number; // Target temperature
   powerLevel: number; // Target power level %
   ventilationLevel: number; // Target ventilation level %
-  
+
   // --- UPDATED FIELDS ---
+  timer: number | null; // Remaining run time in minutes
   timerStartIn: number | null;     // REPLACES old 'timer'. In minutes, from backend.
   timerShutdownIn: number | null;  // NEW. In minutes, from backend.
-  errors: string | null; 
-  
+  errors: string | null;
+
   readings: {
     heaterTemp: number;
     // externalTemp: number | null; // Can be null if not connected
@@ -43,7 +44,7 @@ export interface DieselHeaterState {
   runTimer?: number | null;   // UI state: total run duration in hours
 
   // This is a temporary property used to send commands
-  command?: string; 
+  command?: string;
   value?: any;
   action?: any;
   run_timer_minutes?: number | null;

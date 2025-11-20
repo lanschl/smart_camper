@@ -52,6 +52,9 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
         }));
     };
 
+    // Local state for timer selection (before applying)
+    const [timerDuration, setTimerDuration] = useState<number>(0);
+
     const [lastError, setLastError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -65,7 +68,8 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
         // If the user wants to turn it ON, it must be in 'Standby'
         if (shouldBeOn && dieselHeater.status === 'Standby') {
             setLastError(null); // Clear previous error when starting
-            handleDieselHeaterUpdate({ status: 'starting' });
+            // Pass the timer duration if it's set (> 0)
+            handleDieselHeaterUpdate({ status: 'starting', timer: timerDuration > 0 ? timerDuration : null });
         }
         // If the user wants to turn it OFF, it must be in any state other than 'Standby'
         else if (!shouldBeOn && dieselHeater.status !== 'Standby') {
@@ -165,10 +169,11 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                         </div>
                     )}
 
-                    <div className="grid grid-cols-3 gap-3">
-                        <DataPoint icon={<TemperatureIcon className="w-6 h-6" />} label="Heater" value={`${dieselHeater.readings.heaterTemp}°C`} />
-                        <DataPoint icon={<FlameIcon className="w-6 h-6" />} label="Flame" value={`${dieselHeater.readings.flameTemp}°C`} />
-                        <DataPoint icon={<TemperatureIcon className="w-6 h-6" />} label="Panel" value={`${dieselHeater.readings.panelTemp}°C`} />
+                    <div className="grid grid-cols-4 gap-2">
+                        <DataPoint icon={<TemperatureIcon className="w-5 h-5" />} label="Heater" value={`${dieselHeater.readings.heaterTemp}°C`} />
+                        <DataPoint icon={<FlameIcon className="w-5 h-5" />} label="Flame" value={`${dieselHeater.readings.flameTemp}°C`} />
+                        <DataPoint icon={<TemperatureIcon className="w-5 h-5" />} label="Panel" value={`${dieselHeater.readings.panelTemp}°C`} />
+                        <DataPoint icon={<span className="text-xl font-bold">⏱</span>} label="Timer" value={dieselHeater.timer ? `${dieselHeater.timer}m` : (timerDuration > 0 ? `${timerDuration}m` : 'Off')} />
                     </div>
 
                     <div className="flex flex-col gap-4 mt-2">
@@ -180,6 +185,22 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                         <div className={`transition-opacity duration-300 opacity-100`}>
                             {renderDieselHeaterControl()}
                         </div>
+
+                        {/* Timer Control - Only show when heater is off (to set initial timer) or we want to extend? 
+                            For now, let's allow setting it when OFF. 
+                        */}
+                        {dieselHeater.status === 'Standby' && (
+                            <FatSliderControl
+                                label="Set Timer (Minutes)"
+                                level={timerDuration}
+                                onChange={setTimerDuration}
+                                color="#b45309"
+                                min={0}
+                                max={120}
+                                step={10}
+                                unit="m"
+                            />
+                        )}
                     </div>
                 </div>
 
