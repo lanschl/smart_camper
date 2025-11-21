@@ -150,7 +150,7 @@ const App: React.FC = () => {
       }
     } else if (prevHeater.status !== 'Standby' && newHeater.status === 'shutting_down') {
       socket.emit('diesel_heater_command', { command: 'shutdown' });
-    } else if (!newHeater.status.includes('Starting') && !newHeater.status.includes('Shutting') && !newHeater.status.includes('Cooling') && newHeater.status !== 'Standby') {
+    } else if (!newHeater.status.includes('Starting') && !newHeater.status.includes('Shutting') && newHeater.status !== 'Standby') {
 
       // Check for Mode/Setting changes
       const settingChanged = (prevHeater.mode !== newHeater.mode ||

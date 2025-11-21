@@ -126,15 +126,7 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                         unit=""
                     />
                 );
-            case 'ventilation':
-                return (
-                    <FatSliderControl
-                        label="Set Ventilation Speed"
-                        level={dieselHeater.ventilationLevel}
-                        onChange={level => handleDieselHeaterUpdate({ ventilationLevel: level })}
-                        color="#b45309"
-                    />
-                );
+
             default:
                 return null;
         }
@@ -204,10 +196,9 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                     </div>
 
                     <div className="flex flex-col gap-4 mt-2">
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             <ModeButton label="Temp" isActive={dieselHeater.mode === 'temperature'} onClick={() => handleDieselHeaterUpdate({ mode: 'temperature', setpoint: dieselHeater.setpoint || 24 })} />
                             <ModeButton label="Power" isActive={dieselHeater.mode === 'power'} onClick={() => handleDieselHeaterUpdate({ mode: 'power', powerLevel: dieselHeater.powerLevel || 5 })} />
-                            <ModeButton label="Vent" isActive={dieselHeater.mode === 'ventilation'} onClick={() => handleDieselHeaterUpdate({ mode: 'ventilation' })} />
                             <ModeButton
                                 label="Timer"
                                 isActive={!!dieselHeater.timerEnabled}
@@ -218,18 +209,16 @@ const HeatingView: React.FC<HeatingViewProps> = ({ boiler, floorHeating, dieselH
                             {renderDieselHeaterControl()}
 
                             {/* Secondary Timer Slider */}
-                            {dieselHeater.timerEnabled && (
-                                <FatSliderControl
-                                    label="Set Timer Duration"
-                                    level={dieselHeater.runTimer || 0}
-                                    onChange={level => handleDieselHeaterUpdate({ runTimer: level })}
-                                    color="#78350f" // amber-900
-                                    min={0.5}
-                                    max={12}
-                                    step={0.5}
-                                    unit="h"
-                                />
-                            )}
+                            <FatSliderControl
+                                label="Set Timer Duration"
+                                level={dieselHeater.runTimer || 0}
+                                onChange={level => handleDieselHeaterUpdate({ runTimer: level })}
+                                color="#78350f" // amber-900
+                                min={0.5}
+                                max={12}
+                                step={0.5}
+                                unit="h"
+                            />
                         </div>
                     </div>
                 </div>
