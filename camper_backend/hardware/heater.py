@@ -3,7 +3,7 @@ import time
 import logging
 from typing import Dict, Any, Optional
 
-USE_MOCK_HEATER = True
+USE_MOCK_HEATER = False
 
 if USE_MOCK_HEATER:
     from .autotherm_heater_control.mock_heater import MockAutotermHeaterController as AutotermHeaterController

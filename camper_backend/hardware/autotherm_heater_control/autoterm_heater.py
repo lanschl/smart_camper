@@ -131,6 +131,18 @@ class AutotermHeaterController:
                 self.logger.info(f"Found serial adapter by ID '{self.serial_num}' at '{self.port}'")
                 return True
             else:
+                self.logger.warning(f"Serial device with ID '{self.serial_num}' NOT found.")
+                
+                # Diagnostic: List what IS there
+                try:
+                    available = glob.glob("/dev/serial/by-id/*")
+                    if available:
+                        self.logger.info(f"Available devices in /dev/serial/by-id/: {available}")
+                    else:
+                        self.logger.info("No devices found in /dev/serial/by-id/.")
+                except Exception:
+                    pass
+
                 # Fallback for testing/other OS
                 ports = serial.tools.list_ports.comports()
                 for p in ports:

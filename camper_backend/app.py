@@ -6,6 +6,8 @@ import csv
 from datetime import datetime, timedelta
 from collections import deque
 import logging
+from typing import Optional
+import json
 
 from config import (VALVE_PINS, ESP32_LIGHT_CONFIG, PUMP_PINS, ACTUATOR_PINS, SERVER_HOST, 
                     SERVER_PORT, BOILER_PINS, FLOOR_HEATING_PINS, SENSOR_IDS, 
@@ -41,6 +43,8 @@ HEATER_SAFETY_SHUTDOWN_TIME: Optional[float] = None
 HEATER_SHUTDOWN_TRIGGERED = False
 # Stores the initial duration for UI reporting (in minutes)
 HEATER_RUNTIME_DURATION: Optional[int] = None
+# --- NEW: Retry timestamp for delayed shutdown (if heater is starting) ---
+HEATER_RETRY_SHUTDOWN_TIMESTAMP: Optional[float] = None
 # --- NEW: Global State for Weekly Scheduler (Mimics Node-RED's external storage) ---
 # NOTE: In a production system, these should be loaded from a persistent storage like a DB or file.
 HEATER_SCHEDULE_FILE = '/home/lukas/smart_camper/camper_backend/heater_schedule.json' 
@@ -123,7 +127,7 @@ def save_heater_schedule():
 
 def check_heater_schedule():
     """Checks the weekly schedule and sends commands if a timer has fired."""
-    global HEATER_TIMER_ON_OFF, HEATER_SCHEDULE
+    global HEATER_TIMER_ON_OFF, HEATER_SCHEDULE, HEATER_RETRY_SHUTDOWN_TIMESTAMP
 
     if not HEATER_TIMER_ON_OFF:
         return # Timer system disabled (matches Node-RED's 'check timer on/off' switch)
@@ -132,6 +136,23 @@ def check_heater_schedule():
     current_day = now.weekday() # Monday is 0, Sunday is 6
     # Note: Using seconds ensures this only fires once per minute (or less often depending on the loop interval)
     current_time_str_min = now.strftime("%H:%M") 
+    current_timestamp = time.time()
+
+    # --- 0. RETRY LOGIC (For delayed shutdowns) ---
+    if HEATER_RETRY_SHUTDOWN_TIMESTAMP is not None and current_timestamp >= HEATER_RETRY_SHUTDOWN_TIMESTAMP:
+        heater_state = heater_controller.get_state()
+        status = heater_state.get('status', 'Standby')
+        
+        if "Starting" in status:
+            logging.warning(f"RETRY SHUTDOWN: Heater still in '{status}'. Deferring for another 60s.")
+            HEATER_RETRY_SHUTDOWN_TIMESTAMP = current_timestamp + 60
+        elif "Shutting" in status or status == "Standby" or status == "off":
+             logging.info(f"RETRY SHUTDOWN: Heater already '{status}'. Retry cleared.")
+             HEATER_RETRY_SHUTDOWN_TIMESTAMP = None
+        else:
+            logging.info(f"RETRY SHUTDOWN: Heater now in '{status}'. Safe to shutdown. Executing.")
+            heater_controller.shutdown()
+            HEATER_RETRY_SHUTDOWN_TIMESTAMP = None
 
     for timer in HEATER_SCHEDULE.get("timers", []):
         days = timer.get("days", [])
@@ -157,9 +178,22 @@ def check_heater_schedule():
                 
             # --- END TIME LOGIC (Mimics Node-RED's [false] output) ---
             elif end_time_str == current_time_str_min:
-                logging.info("SCHEDULE FIRED: Shutting down heater.")
-                # Node-RED sends a direct stop command
-                heater_controller.shutdown()
+                heater_state = heater_controller.get_state()
+                status = heater_state.get('status', 'Standby')
+                
+                # 1. Safety Check: Don't shut down if starting
+                if "Starting" in status:
+                    logging.warning(f"SCHEDULE FIRED: Shutdown requested but heater is in '{status}'. Deferring for 60s.")
+                    HEATER_RETRY_SHUTDOWN_TIMESTAMP = time.time() + 60
+                
+                # 2. Redundancy Check: Don't shut down if already off/stopping
+                elif "Shutting" in status or status == "Standby" or status == "off":
+                    # logging.info(f"SCHEDULE FIRED: Heater already in '{status}'. No action needed.")
+                    pass
+                
+                else:
+                    logging.info(f"SCHEDULE FIRED: Shutting down heater (Current status: {status}).")
+                    heater_controller.shutdown()
 
 load_heater_schedule() # Call this once on startup
 boiler_temp_history = load_history_from_log()

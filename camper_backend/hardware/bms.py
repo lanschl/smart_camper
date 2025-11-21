@@ -89,10 +89,11 @@ class BMSReader:
             return final_data
 
         except subprocess.CalledProcessError as e:
-            logging.error(f"BMS command failed. STDERR: {e.stderr.strip()}")
+            # This usually happens if the BMS is out of range or busy
+            logging.warning(f"BMS command failed (Device likely offline/busy). STDERR: {e.stderr.strip()}")
             return None
         except subprocess.TimeoutExpired:
-            logging.error("BMS connection timed out. Is it on and in range?")
+            logging.warning("BMS connection timed out. Is it on and in range?")
             return None
         except Exception as e:
             logging.error(f"An unexpected error occurred while reading BMS: {e}")
