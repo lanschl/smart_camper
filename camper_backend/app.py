@@ -8,6 +8,7 @@ from collections import deque
 import logging
 from typing import Optional
 import json
+import os
 
 from config import (VALVE_PINS, ESP32_LIGHT_CONFIG, PUMP_PINS, ACTUATOR_PINS, SERVER_HOST, 
                     SERVER_PORT, BOILER_PINS, FLOOR_HEATING_PINS, SENSOR_IDS, 
@@ -24,11 +25,19 @@ from hardware.bms import BMSReader
 from hardware.heater import HeaterController
 
 
+from logging_utils import setup_logging
+
+# --- Logging Setup ---
+LOG_DIR = '/home/lukas/smart_camper/camper_backend/logs'
+
+# 1. Setup App/Debug Logging
+debug_log_path = setup_logging(LOG_DIR, "debug")
+
 logging.basicConfig(
-    level=logging.INFO,  # <-- CHANGE BACK TO INFO
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
     handlers=[
-        logging.FileHandler("/home/lukas/smart_camper/camper_backend/debug.log"),
+        logging.FileHandler(debug_log_path),
         logging.StreamHandler()
     ]
 )
@@ -74,7 +83,9 @@ floor_heating_controller = PWMDeviceController(FLOOR_HEATING_PINS)
 sensor_reader = SensorReader(SENSOR_IDS)
 water_level_controller = WaterLevelController(WATER_SENSOR_CONFIG)
 bms_reader = BMSReader(BMS_MAC_ADDRESS, BMS_PROTOCOL)
-heater_controller = HeaterController(HEATER_CONFIG['serial_number'], HEATER_CONFIG['log_path'])
+# 2. Setup Heater Logging
+heater_log_path = setup_logging(LOG_DIR, "heater")
+heater_controller = HeaterController(HEATER_CONFIG['serial_number'], heater_log_path)
 
 TEMPERATURE_LOG_FILE = '/home/lukas/smart_camper/camper_backend/boiler_temp_log.csv'
 
@@ -196,6 +207,36 @@ def check_heater_schedule():
                     heater_controller.shutdown()
 
 load_heater_schedule() # Call this once on startup
+
+def cleanup_old_boiler_logs():
+    """Removes entries older than 24 hours from the boiler log CSV."""
+    try:
+        cutoff_time = time.time() - (24 * 3600) # 24 hours ago
+        rows_to_keep = []
+        
+        if os.path.exists(TEMPERATURE_LOG_FILE):
+            with open(TEMPERATURE_LOG_FILE, 'r', newline='') as f:
+                reader = csv.reader(f)
+                for row in reader:
+                    if len(row) >= 1:
+                        try:
+                            # row[0] is timestamp
+                            if float(row[0]) > cutoff_time:
+                                rows_to_keep.append(row)
+                        except ValueError:
+                            pass # Skip malformed lines
+            
+            # Write back only the recent data
+            with open(TEMPERATURE_LOG_FILE, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerows(rows_to_keep)
+            
+            logging.info(f"Cleaned up boiler log. Kept {len(rows_to_keep)} entries (last 24h).")
+    except Exception as e:
+        logging.error(f"Error cleaning boiler log: {e}")
+
+# Run cleanup once on startup
+cleanup_old_boiler_logs()
 boiler_temp_history = load_history_from_log()
 
 # --- NEW: Timer Management function to run in background thread ---
@@ -309,7 +350,14 @@ def sensor_reading_thread():
     global HEATER_RUNTIME_END_TIME, HEATER_SAFETY_SHUTDOWN_TIME
     
     print("Starting sensor reading background thread.")
+    last_cleanup_time = time.time()
+    
     while True:
+        # --- NEW: Periodic Log Cleanup (Every Hour) ---
+        if time.time() - last_cleanup_time > 3600:
+            cleanup_old_boiler_logs()
+            last_cleanup_time = time.time()
+
         # --- NEW: Check local runtime timer ---
         check_runtime_timer()
         
