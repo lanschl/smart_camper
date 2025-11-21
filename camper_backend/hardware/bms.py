@@ -89,8 +89,13 @@ class BMSReader:
             return final_data
 
         except subprocess.CalledProcessError as e:
-            # This usually happens if the BMS is out of range or busy
-            logging.warning(f"BMS command failed (Device likely offline/busy). STDERR: {e.stderr.strip()}")
+            # The jkbms tool prints a traceback to stderr when it fails to connect.
+            # We want to hide this scary output if it's just a connection issue.
+            err_msg = e.stderr.strip()
+            if "Traceback" in err_msg or "bluepy" in err_msg:
+                 logging.warning("BMS command failed (Device offline/unreachable).")
+            else:
+                 logging.warning(f"BMS command failed. STDERR: {err_msg}")
             return None
         except subprocess.TimeoutExpired:
             logging.warning("BMS connection timed out. Is it on and in range?")
